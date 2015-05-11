@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}PCEF Rules{% endblock %}
+{% block content %}
+
+	<article class="content">    
+		<section>        
+			<h2>Rules</h2>        
+			<table border="0" class="contentTable">    
+			<tr>
+				<th>Name</th>
+				<th>QoS</th>
+				<th>Download Min (kbs)</th>
+				<th>Upload Min (kbs)</th>
+				<th>Download Max (kbs)</th>
+				<th>Upload Max (kbs)</th>
+			</tr>
+			{% for rule in rules.values() %}
+			<tr>
+				<td> <a href="/pcef/rule/{{rule.name}}">{{rule.name}}</a></td> 
+				<td> {{rule.qos}}</td>
+				<td> {{rule.downloadMin_kbs}} </td> 
+				<td> {{rule.uploadMin_kbs}} </td> 
+				<td> {{rule.downloadMax_kbs}} </td> 
+				<td> {{rule.uploadMax_kbs}} </td> 
+			</tr>
+			{% endfor %}
+			
+				
+</table>
+</section>
+
+</article>
+					
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Bucket Data Holder{% endblock %}
+{% block head %}
+{{ super() }}
+<script>
+function deleteSession(id) {
+	var xmlhttp;
+	xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("DELETE", "/pcef/sessions/"+id, false);
+	xmlhttp.send();
+}
+</script>
+{% include "livechart.js" %}
+{% endblock %}
+{% block content %}
+
+  
+	      
+	<h2>Session</h2>        
+	<table class="table">    
+		<tr>
+				<td>Session Id</td><td> {{session.sessionId}} </td>
+		</tr>
+		<tr>	
+			<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
+		</tr>
+		<tr>
+		<td>Rules</td>
+		<td>
+		<h4>
+		{% for chargingRule in session.installedRules %}
+		<a href="/pcef/rule/{{chargingRule}}" >
+		<span class="label label-primary">{{chargingRule}}</span></a>
+		{% endfor %}
+		</h4>
+		</td>
+		</tr>
+	</table>
+	<div class="row well">
+	{% include "livechart_snippet.html" %}
+	</div>
+	<div class="row well">
+
+	<form action="/pcef/sessions/{{session.sessionId}}" method="post">
+	<div class="col-md-10">
+		<table class="table">
+			<thead>
+				<tr>	
+					<th>Traffic type</th>
+					<th>Used</th> 
+					<th>Granted</th>
+					<th>New usage</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for minfo in session.monitoringInfo.values() %}				
+					<tr>	
+						<td> {{ minfo.key}} </td>
+						<td> {{ minfo.usage|filesizeformat}} </td>
+						<td> {{ minfo.gsu|filesizeformat}} </td> 
+						<td><input type="text" name="{{minfo.key}}"></td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<div class="col-md-2">
+		<input type="submit" class="btn btn-success" value="Report usage">
+	</div>
+	</form>
+</div>
+<div class="container">
+	<h3>Buckets</h3>
+	<div class="row">
+		<div class="col-md-8">
+			<div id="demo" class="collapse in">
+				<table class="table">  
+					<tr>
+						<th>ID</th>
+						<th>Product</th>
+						<th>StartTime</th>
+						<th>StopTime</th>
+						<th>Counters</th>
+					</tr>
+					{% for bucket in buckets %}
+					<tr>
+						<td>{{bucket.id}}</td>
+						<td>{{bucket.name}}</td>
+						<td>{{bucket.startTime}}</td>
+						<td>{{bucket.stopTime}}</td>
+						<td>
+							
+						{{bucket.counters["tot"]|filesizeformat}}
+							<!--
+							<table class="table">  
+							{% for k,v in bucket.counters.iteritems() %}
+							<tr>
+									<td align="left">{{k}}</td><td align="right">{{v}}</td>
+							</tr>
+							{% endfor %}
+							</table>
+							-->
+			
+						</td>
+					</tr>
+					{% endfor %}
+				</table>
+			</div>
+		</div>
+  	</div>
+</div>
+	<div style="padding-top:20px;">
+	<button onclick='deleteSession("{{session.sessionId}}");' type="button" class="btn btn-danger">Delete session</button>
+	</div>
+
+
+
+{% endblock %}

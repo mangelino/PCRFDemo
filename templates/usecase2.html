@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Use Cases{% endblock %}
+{% block content %}
+
+	<article class="content">  
+	<section>Enter the number you would like to activate the 1 minute Turbo package for</section>  
+		<section>       
+	<form action="/usecase/2" method="post">
+		IMSI <input name="IMSI" type="text"></br>
+		<input name="action" value="Buy subscription" class="btn btn-default" type="submit">
+	</form>
+
+</section>
+</article>
+					
+{% endblock %}

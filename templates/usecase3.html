@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Use Cases{% endblock %}
+{% block content %}
+
+	<article class="content">    
+		<section>Enter the numbers you would like to add to the family subscription</section>
+		<section>    
+	<form action="/usecase/3" method="post">
+
+		IMSI Child1 <input name="child1" type="text"></br>
+		IMSI Child2 <input name="child2" type="text"></br>
+		<input name="action" value="Buy subscription" class="btn btn-default" type="submit">
+	</form>
+
+</section>
+</article>
+					
+{% endblock %}

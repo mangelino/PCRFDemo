@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Use Cases{% endblock %}
+{% block content %}
+
+	<article class="content">  
+	<section>Please enter the number you would like to buy the Youtube sponsored</section>  
+		<section>       
+	<form action="/usecase/4" method="post">
+		IMSI <input name="IMSI" type="text"></br>
+		<input name="action" value="Buy subscription" class="btn btn-default" type="submit">
+	</form>
+
+</section>
+</article>
+					
+{% endblock %}

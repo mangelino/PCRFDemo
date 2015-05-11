@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Subscriber equipments{% endblock %}
+{% block content %}
+
+  
+	<table class="table">    
+		<thead>
+			<tr>      
+				<th>Identity</th>   
+				<th>Identity Type</th>
+				<th>Equipment</th>
+				<th>Equipment Type</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for ue in ues.values() %}
+			<tr>
+				<td> <a href="/ue/{{ue.identity}}"> {{ ue.identity }} </a></td>
+				<td> {{ ue.identityType }} </td>
+				<td> {{ ue.userEquipment }} </td>
+				<td> {{ ue.userEquipmentType }} </td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	</div>
+
+{% endblock %}

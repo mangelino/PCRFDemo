@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}PCEF{% endblock %}
+{% block content %}
+
+
+	<div class="page-header">       
+			<h3>Registered UEs</h3> 
+	</div>
+	<div>
+		<table class="table">
+		<thead>
+			<th>Subscriber</th>
+			<th>Products</th>
+		</thead>
+		<tbody>
+		{% for u in users %}  
+		<tr>
+		<td>
+		<a href="/ue/{{u.identity}}">{{u.identity}}</a>  
+		</td>
+		<td>
+		{% for b in buckets[u.identity] %}
+		<span class="label label-primary">{{b.name}}</span></a>
+		{% endfor %}
+		</td>
+		</tr>
+		{% endfor %} 
+		</tbody>
+		</table>
+	</div>   
+	<div class="page-header">        
+		<h3>Established sessions</h3> 
+	</div>
+	<div class="row">
+		<div class="col-sm-6">
+			<table class="table">
+				<thead>
+					<th>UE</th>
+					<th>Session Id</th>
+				</thead>
+				<tbody>
+					{% for s in sessions %}  
+					<tr>
+					<td>{{s.identity}}</td>
+					<td><a href="/ue/{{s.identity}}/session/{{s.sessionId}}">{{s.sessionId|truncate(15, True)}}</a></td>
+					</tr> 
+					{% endfor %} 
+				</tbody>
+			</table>
+		</div >   
+	</div> 
+	<div class="page-header">     
+		<h3>Static PCEF Rules</h3> 
+	</div>
+	<div>
+		{% for r in rules %}  
+		<p><a href="/pcef/rule/{{r.name}}">{{r.name}}</a></p>   
+		{% endfor %} 
+	</div >  <!-- end .content -->
+
+{% endblock %}

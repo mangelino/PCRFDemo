@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}PCEF{% endblock %}
+{% block content %}
+
+
+	<h3>Subscriber info</h3>      
+	<div class="row">
+  <div class="col-sm-4">
+	<table class="table">   
+		<tbody> 
+			<tr>
+				<td>Indentity</td><td> {{ ue.identity}} </td> 
+			</tr>
+			<tr>	
+				<td>Identity Type </td>	<td> {{ ue.identityType}} </td> 
+			</tr>
+			<tr>	
+				<td>Equipment </td>	<td> {{ ue.userEquipment}} </td> 
+			</tr>
+			<tr>	
+				<td>Equipment Type </td>	<td> {{ ue.userEquipmentType}} </td> 
+			</tr>
+		</tbody>
+	</table>
+	</div>
+</div>
+<div>
+<form action = "/ue/{{ue.identity}}/sessions" method="post">
+<input type="submit" class="btn btn-default" value="Create session"/>
+</form>
+</div>
+
+{% if ue.sessions|count >0 %}
+<h4>Sessions</h4>
+	<div class="row">
+	<div class="col-md-4">
+			<table class="table">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Session key</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for s in ue.sessions %}
+				<tr> 
+					<td> {{loop.index}} </td>
+					<td> <a href="/ue/{{ue.identity}}/session/{{s.sessionId}}">{{s.sessionId|truncate(15, True)}}</a> </td>
+				</tr>
+				{% endfor %}
+			</tbody>
+			</table>
+			</div>
+		</div>
+{% endif %}
+
+{% if buckets|count >0 %}
+<h4>Subscriptions</h4>
+	<div class="row">
+	<div class="col-md-8">
+			<table class="table">  
+			<tr>
+			<th>ID</th>
+			<th>Product</th><th>StartTime</th><th>StopTime</th><th>Counters</th>
+			</tr>
+			{% for bucket in buckets %}
+			<tr>
+			<td>{{bucket.id}}</td>
+			<td>{{bucket.name}}</td>
+			<td>{{bucket.startTime}}</td>
+			<td>{{bucket.stopTime}}</td>
+			<td>
+			{{bucket.counters["tot"]|filesizeformat}}
+							<!--
+							<table class="table">  
+							{% for k,v in bucket.counters.iteritems() %}
+							<tr>
+									<td align="left">{{k}}</td><td align="right">{{v}}</td>
+							</tr>
+							{% endfor %}
+							</table>
+							-->
+			</td>
+			</tr>
+			{% endfor %}
+			</table>
+			</div>
+		</div>
+{% endif %}		
+{% endblock %}

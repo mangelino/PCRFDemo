@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}PCEF{% endblock %}
+{% block content %}
+
+<form action="" method="get" enctype="multipart/form-data" name="Form">  
+	<div class="sidebar1">    
+	<ul class="nav">        
+		<li><input name="action" type="submit" class="nav" value="" style="width:180px; margin:auto; align:center;"></li>
+		<li><input name="action" type="submit" class="nav" value="Update" style="width:180px; margin:auto; align:center;"></li>        
+		<li><input name="action" type="submit" class="nav" value="Stop" style="width:180px; margin:auto; align:center;"></li>     
+	</ul>    
+	
+	</div>  
+	<article class="content">    
+		<section>        
+			<h2>Exisiting UEs</h2>        
+			<table border="0" class="contentTable">    
+				<tr>      
+					<th scope="row">Identity</th>      
+					<td><input type="text" name="identity" value="{{ request["identity"] }}"/> </td>      
+					<td> <select name="identityType"><option value="1">IMSI</option><option value="0">MSISDN</option></select></td>    
+				</tr>    
+				<tr>      
+					<th scope="row">User equipment</th>      
+					<td><input type="text" name="userEquipment" value="{{ request["userEquipment"] }}"/> </td>      
+					<td> 
+						<select name="userEquipmentType">
+							<option value="0">IMEISV</option>
+							<option value="1">MAC</option>
+							<option value="2">EUI64</option>
+							<option value="3">MODIFIED_EUI64</option>
+						</select>
+					</td>   
+				</tr>   
+				<tr>      
+					<th scope="row">Radio Access Type</th>      
+					<td colspan="2"><input type="text" name="rat" value="{{ request["rat"]}}"/> </td>    
+				</tr>    
+				<tr>      
+					<th scope="row">Called Station Id</th>      
+					<td colspan="2"><input type="text" name="calledStationId" value="{{request["calledStationId"]}}"/> </td>    
+				</tr>  
+			</table>  <p>&nbsp;</p>    
+		</section>    
+		<section>        
+			<h2>Monitoring Keys</h2>          
+			<table border="0" class="contentTable">    
+				<tr>      
+					<th scope="row">Name:</th>      
+					<td><input type="text" name="mk0Name" value="Youtube"/> </td>      
+					<th scope="row">GSU: </th>      
+					<td>4096</td>      
+					<th scope="row">USU</th>      
+					<td><input type="text" name="mk0Value" value=""/> </td>    
+					</tr>    <tr>      <th scope="row">Name:</th>      
+					<td><input type="text" name="mk1Name" value="Data"/> </td>      
+					<th scope="row">GSU: </th>      
+					<td>4096</td>      
+					<th scope="row">USU</th>      
+					<td><input type="text" name="mk1Value" value=""/> </td>    
+				</tr>    
+			</table>      
+			<p>&nbsp;</p>    
+		</section>    
+		<section>     
+			<h2>Sessions</h2>     
+			<table border="0" class="contentTable">
+				<tr>
+					<th>Session</th>
+					<th>Product Name</th>
+					<th>Consumption</th>
+
+				</tr>
+				{% for session in sessions %}   
+				{% for minfo in session.monitoringInfo.values() %} 
+				<tr>
+					<td><span style="color: black;">{{ session.sessionId[-1] }}</span></td>
+					<td><span style="color: black;">{{ minfo.key }}</span></td>
+					<td><span style="color: black;"> {{ minfo.usage }} </span></td>
+				</tr>    
+				{% endfor %}
+				{% endfor %}
+				    
+			</table>     
+			<table border="0" class="contentTable">
+				<tr>
+					<th>Rules to install</th>
+					<th>Rules to Remove</th>
+				</tr>     
+			</table>     
+			<h4>Request</h4>     
+			<p class="codage"> {{ ccr_request }} </p>         
+			<h4>Answer</h4>          
+			<p class="codage"> {{ ccr_answer }} </p>    
+		</section>  <!-- end .content -->
+	</article>  
+	<aside>    
+		<ul class="nav">    </ul>    
+		<h3>Installed Rules:</h3>   
+		<p>Youtube</p>   
+		<p>Throttle</p>   
+		<p>Data</p>  
+	</aside>  
+</form>
+
+{% endblock %}

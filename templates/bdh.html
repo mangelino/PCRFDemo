@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Bucket Data Holder{% endblock %}
+{% block content %}
+	
+	<table class="table">
+	<tr>
+	<th>User</th>
+	<th>Bucket</th>
+	<th>Product</th>
+	<th>StartTime</th>
+	<th>StopTime</th>
+	<th>Counters</th>
+	</tr>
+		{% for identityid in buckets.keys() %}
+	
+		{% for bucket in buckets[identityid] %}
+		<tr style="vertical-align:middle;">
+		<td>
+			<a href="/bdh/{{identityid}}">{{identityid}}</a>
+		</td>
+		<td align="center">{{bucket.id}}</td>
+		<td>{{bucket.name}}</td>
+		<td>{{bucket.startTime}}</td>
+		<td>{{bucket.stopTime}}</td>
+		<td>
+		{{bucket.counters["tot"]|filesizeformat}}
+			<!--
+			<table class="table">  
+			{% for k,v in bucket.counters.iteritems() %}
+			<tr>
+					<td align="left">{{k}}</td><td align="right">{{v}}</td>
+			</tr>
+			{% endfor %}
+			</table>
+			-->
+			</td>
+		</tr>
+{% endfor %}
+{% endfor %}
+	</table>
+<!--	<div>      
+		<form action="/bdh" method="POST">
+			<input name="action" type="submit" class="btn btn-danger" value="Reset BDH">
+			<input name="action" type="submit" class="btn btn-default" value="Refresh BDH">
+		</form>
+	</div>
+-->
+					
+{% endblock %}

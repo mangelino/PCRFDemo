@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Bucket Data Holder{% endblock %}
+{% block head %}
+{{ super() }}
+<script>
+function deleteBucket(id) {
+	var xmlhttp;
+	xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("DELETE", "/bdh/"+id, false);
+	xmlhttp.send();
+}
+</script>
+{% endblock %}
+{% block content %}
+
+	      
+			<h3>Buckets for <a href="/ue/{{identityid}}">{{identityid}}</a></h3>        
+			<table class="table">  
+			<tr>
+			<th>Product</th><th>StartTime</th><th>StopTime</th><th>Counters</th>
+			</tr>
+			{% for bucket in buckets %}
+			<tr>
+			<td>{{bucket.id}}</td>
+			<td>{{bucket.name}}</td>
+			<td>{{bucket.startTime}}</td>
+			<td>{{bucket.stopTime}}</td>
+			<td>
+			<table class="table">  
+				{% for k,v in bucket.counters.iteritems() %}
+				<tr>
+						<td>{{k}}</td><td>{{v}}</td>
+				</tr>
+				{% endfor %}
+				
+			</table>
+			</td>
+			</tr>
+			{% endfor %}
+			</table>
+
+
+<form action="/bdh/{{identityid}}" method="post">
+<input name="action" class="btn btn-danger" type="submit" value="Reset BDH">
+</form>
+{% endblock %}

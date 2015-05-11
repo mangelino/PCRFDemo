@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}PCEF Sessions{% endblock %}
+{% block content %}
+
+	<article class="content">    
+		<section>        
+			<h2>Sessions</h2>        
+			<table border="0" class="contentTable">    
+			<tr>
+				<th>UE Identity</th>
+				<th>Session id</th>
+				<th>Granted Units</th>
+				<th>Used</th>
+			</tr>
+			{% for session in sessions.values() %}
+			<tr>
+				<td> {{ session.identity}} </td> 
+				<td> <a href="/ue/{{session.identity}}/session/{{session.sessionId}}">{{ session.sessionId|truncate(15,True) }}</a></td>
+				<td> {{ session.gsu}} </td> 
+				<td> {{ session.used}} </td> 
+			</tr>
+			{% endfor %}
+			
+				
+</table>
+</section>
+
+</article>
+{% endblock %}

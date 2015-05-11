@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Diameter Error{% endblock %}
+{% block content %}
+	    <div class="alert alert-warning" role="alert">
+	     <strong>Diameter Error:</strong>
+        <p>{{error.id}}</p>
+			<p>{{error.code}}</p>
+			<p>{{error.description}}</p>
+      </div>
+			
+
+
+					
+{% endblock %}
