@@ -16,11 +16,13 @@ PCEF_PORT = {1:"12008", 2:"12009"}
 
 MonitoringInfo = namedtuple("MonitoringInfo", "key intKey productName gsu usu usage")
 Session = namedtuple("UserPolicy", "identity sessionId monitoringInfo installedRules")
-UE = namedtuple("UE", "identity identityType userEquipment userEquipmentType sessions pcef")
+#UE = namedtuple("UE", "identity identityType userEquipment userEquipmentType sessions pcef")
 #users = {}
-pcef_users = {1:{}, 2:{}}
-pcef_sessions = {1:{}, 2:{}}
+#pcef_users = {1:{}, 2:{}}
+#pcef_sessions = {1:{}, 2:{}}
 all_users = {}
+
+pcefs = {}
 #sessions = {}
 Rule = namedtuple("Rule", "name qos uploadMin_kbs downloadMin_kbs uploadMax_kbs downloadMax_kbs")
 rules = {}
@@ -32,27 +34,13 @@ allowed_actions = ["Start", "Stop", "Update", "Refresh", "Reset"]
 #ans = "D_CC_Answer=[Session-Id=172021001178ggsn4.ggsn.com;1430312453633;0123456789101112131415, Auth-Application-Id=4, Origin-Host=pcrf, Origin-Realm=digitalroute.com, CC-Request-Type=2, CC-Request-Number=9, Result-Code=2001, Experimental-Result=null, Supported-Features=null, Bearer-Control-Mode=0, Event-Trigger=[5, 13, 33], Origin-State-Id=0, Redirect-Host=null, Redirect-Host-Usage=0, Redirect-Max-Cache-Time=0, Charging-Rule-Remove=null, Charging-Rule-Install=null, ADC-Rule-Remove=null, ADC-Rule-Install=null, Charging-Information=null, Online=0, Offline=0, QoS-Information=null, Revalidation-Time=null, ADC-Revalidation-Time=null, Default-EPS-Bearer-QoS=null, Bearer-Usage=0, 3GPP-User-Location-Info=null, Usage-Monitoring-Information=[D_Usage_Monitoring_Information_AVP=[Monitoring-Key=[B@6b880835, Granted-Service-Unit=[D_Granted_Service_Unit_AVP=[CC-Time=0, CC-Total-Octets=4096, CC-Input-Octets=0, CC-Output-Octets=0, Monitoring-Time=null]], Used-Service-Unit=null, Usage-Monitoring-Level=0, Usage-Monitoring-Report=0, Usage-Monitoring-Support=0, AVP=null], D_Usage_Monitoring_Information_AVP=[Monitoring-Key=[B@277295db, Granted-Service-Unit=[D_Granted_Service_Unit_AVP=[CC-Time=0, CC-Total-Octets=4096, CC-Input-Octets=0, CC-Output-Octets=0, Monitoring-Time=null]], Used-Service-Unit=null, Usage-Monitoring-Level=0, Usage-Monitoring-Report=0, Usage-Monitoring-Support=0, AVP=null]], CSG-Information-Reporting=null, User-CSG-Information=null, Error-Message=null, Error-Reporting-Host=null, Failed-AVP=null, Proxy-Info=null, Route-Record=null, AVP=null]"
 
 def initialize():
-	#users.clear()
-	users = {}
-	all_users.clear()
-	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", [],1)
-	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV", [],1 )
-	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV", [],1)
-	users["460004"] = UE("460004", "IMSI", "Nokia Lumia 900", "IMEISV", [],1)
-	pcef_users[1]=users
-	all_users.update(users)
-	users = {}
-	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV", [],2)
-	pcef_users[2]=users
-	all_users.update(users)
-	for sessions in pcef_sessions.values():
-		sessions.clear()
-	rules.clear()
-	rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 50000)
-	rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 2000)
-	rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 50000)
-	rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 2000)
-	rules["Youtube"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
+	pcefs.clear()
+	pcefs[1]= PCEF(1, MZ_ROOT, PCEF_PORT[1])
+	pcefs[2]= PCEF(2, MZ_ROOT, PCEF_PORT[2])
+
+	createDefaultUsersAndRegister()
+	print "Init users: ", all_users
+	
 
 def loadDiameterErrors():	
 	diameterErrors[1001] = DiameterError(1001, "DIAMETER_MULTI_ROUND_AUTH", "Subsequent messages triggered by client shall also used in Authentication and to get access of required resources. Generally used in Diameter NASSuccess")
@@ -210,6 +198,7 @@ def usecase_listing(id=None):
 
 @app.route("/ue/", methods=['GET'])
 def list_ue():
+	print all_users.keys()
 	return render_template('list_ue.html', ues=all_users)
 
 
@@ -226,35 +215,9 @@ def create_ue_session(identity = None):
 	if not identity in all_users:
 		abort(404)
 	
-	#Invokes the simulator on MZ
-	r = forwardQuery("Start", identity)
-	
-	simulator_ans = r.content
-	ccr_cycle = json.loads(simulator_ans)
-	pcefNode = all_users[identity].pcef
-	sessions = pcef_sessions[pcefNode]
-	users = pcef_users[pcefNode]
+	pcef = all_users[identity].pcef
 
-	ccr_ans = ccr_cycle["Answer"]
-	if ccr_ans["Result_Code"] == 2001:
-		session_id = ccr_ans["Session_Id"]
-		session = Session(identity, session_id, {}, [])
-		sessions[session_id] = session
-		users[identity].sessions.append(session)
-		print "Sessions:",users[identity].sessions
-		json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-		print "CCR Answer = ",json_pretty
-		
-		checkUsageMonitoringInfo(ccr_ans, session)
-		checkChargingRuleName(ccr_ans, session)
-
-		# if "Usage_Monitoring_Information"  in ccr_ans:
-		# 	monitoring_info = ccr_ans["Usage_Monitoring_Information"][0]
-		# 	print ("MonInfo: " + str(monitoring_info))
-		# 	mkey = baToStr(monitoring_info["Monitoring_Key"])
-		# 	if not mkey in session.monitoringInfo:
-		# 		session.monitoringInfo[mkey] = MonitoringInfo(mkey, len(session.monitoringInfo), "", 0,0,0)
-
+	if pcef.createUESession(identity):
 		return flask.redirect("/ue/"+identity)
 	else:
 		return render_template("diameter_error.html", error = diameterErrors[int(ccr_ans["Result_Code"])])
@@ -267,8 +230,8 @@ def list_ue_session(identity = None):
 def monitor_ue_session(identity=None, sessionid = None):
 	if not identity in all_users:
 		abort(404)
-	pcefNode = all_users[identity].pcef
-	sessions = pcef_sessions[pcefNode]
+	pcef = all_users[identity].pcef
+	sessions = pcef.sessions
 	if not sessionid in sessions or sessions[sessionid].identity != identity:
 		abort(404)
 	buckets = getBuckets(identity)
@@ -280,24 +243,24 @@ def monitor_ue_session(identity=None, sessionid = None):
 @app.route("/pcef/<int:pcefid>/", methods=['GET'])
 def pcef(pcefid=None):	
 	buckets = {}
-	users = pcef_users[pcefid]
-	sessions= pcef_sessions[pcefid]
+	users = pcefs[pcefid].users
+	sessions= pcefs[pcefid].sessions
 	for identity in users:
 		userBuckets = getBuckets(identity)
 		buckets[identity] = userBuckets
-	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=rules.values())
+	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].rules.values())
 
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods=['GET'])
 def monitor_pcef_session(pcefid=None,sessionid=None):
-	sessions = pcef_sessions[pcefid]
+	sessions = pcefs[pcefid].sessions
 	if not sessionid in sessions:
 		abort(404)	
 	return render_template("session.html", session = sessions[sessionid])
 
-@app.route("/pcef/rules", methods=['GET'])
-def pcef_list_rules():
-	return render_template("pcef_list_rules.html", rules = rules)
+@app.route("/pcef/<int:pcefid>/rules", methods=['GET'])
+def pcef_list_rules(pcefid=None):
+	return render_template("pcef_list_rules.html", rules = pcefs[pcefid].rules)
 
 @app.route("/pcef/rule/<ruleid>", methods = ['GET'])
 def pcef_rule(ruleid = None):
@@ -307,53 +270,17 @@ def pcef_rule(ruleid = None):
 
 @app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
 def pcef_list_sessions(pcefid=None):
-	sessions = pcef_sessions[pcefid]
+	sessions = pcefs[pcefid].sessions
 	return render_template("pcef_sessions.html", sessions = sessions)
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["DELETE"])
 def pcef_delete_session(pcefid=None,sessionid = None):
 	print "Delete request for ", sessionid
-	sessions = pcef_sessions[pcefid]
-	if not sessionid in sessions:
+	if not sessionid in pcefs[pcefid].sessions:
 		abort(404)
-	sessions = pcef_sessions[pcefid]
-	session = sessions[sessionid]
-	identity = session.identity
-	#return "Deleted"
-	#Update the usage for each key
-	simQuery={"action":"Stop"}
-	simQuery["sessionid"] = session.sessionId;
-	
-	print simQuery
-	
-	ue = users[identity]._asdict()
-	ue.pop("sessions", None)
-	print ue
-	simQuery.update(ue)
-	#TODO: These parameters should be stored in the sessions object
-	simQuery["rat"] = 1000 #request.args["rat"]
-	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-	
-	print simQuery
-	r = requests.get(MZ_ROOT+':12008/',params=simQuery)
- 	simulator_ans = r.content
-	ccr_cycle = json.loads(simulator_ans)
-	
 
-	ccr_ans = ccr_cycle["Answer"]
-	if ccr_ans["Result_Code"] == 2001:
-		session_id = ccr_ans["Session_Id"]
-		
-		users[identity].sessions.pop(users[identity].sessions.index(session))
-		sessions.pop(sessionid)
-
-		json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-		print "CCR_Answer=", json_pretty
-
-		checkUsageMonitoringInfo(ccr_ans, session)
-		checkChargingRuleName(ccr_ans, session)
-
-		# Code 303 forces the browser to change the method to GET
+	result_code = pcefs[pcefid].terminateUESession(identity)
+	if result_code == DIAMETER_SUCCESS:
 		return flask.redirect("/ue/"+identity, code=303)
 	else:
 		return render_template("diameter_error.html", error = diameterErrors[int(ccr_ans["Result_Code"])])
@@ -361,59 +288,15 @@ def pcef_delete_session(pcefid=None,sessionid = None):
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
 def pcef_report_session_usage(sessionid = None, pcefid=None):
-	if not sessionid in pcef_sessions[pcefid]:
+	if not sessionid in pcefs[pcefid].sessions:
 		abort(404)
-	sessions = pcef_sessions[pcefid]
-	users = pcef_users[pcefid]
-	session = sessions[sessionid]
-	identity = session.identity
-	#Update the usage for each key
-	simQuery={"action":"Update"}
-	simQuery["sessionid"] = session.sessionId
-	print request.form
-	for minfo in session.monitoringInfo.values():
-		print "minfo", minfo
-		if minfo.key in request.form:
-			if request.form[minfo.key].isdigit():
-				newUsage = int(request.form[minfo.key])
-				simQuery["mk"+str(minfo.intKey)+"Name"] = minfo.key
-				simQuery["mk"+str(minfo.intKey)+"Value"]= newUsage
-				# It is ok, since I can consume data even in the PCRF does not respond
-				# Should enforce that only the granted data is allowed before requesting new
-				session.monitoringInfo[minfo.key] = minfo._replace(usage = minfo.usage+newUsage)
-				print "minfo=", session.monitoringInfo[minfo.key]
-	
-	print simQuery
-	
-	ue = users[identity]._asdict()
-	ue.pop("sessions", None)
-	print ue
-	simQuery.update(ue)
-	#TODO: These parameters should be stored in the sessions object
-	simQuery["rat"] = 1000 #request.args["rat"]
-	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-	
-	print simQuery
-	r = requests.get(MZ_ROOT+':12008/',params=simQuery)
- 	simulator_ans = r.content
-	ccr_cycle = json.loads(simulator_ans)
-	
 
-	ccr_ans = ccr_cycle["Answer"]
-	session_id = ccr_ans["Session_Id"]
-	
-	json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-	print "CCR_Answer=", json_pretty
-
-	if ccr_ans["Result_Code"] != 2001:
-		code = ccr_ans["Result_Code"]
+	result_code = pcef[pcefid].reportSessionUsage(sessionid)
+	if (result_code != 2001):
 		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description)
-	checkUsageMonitoringInfo(ccr_ans, session)
-	checkChargingRuleName(ccr_ans, session)
 	
 	buckets = getBuckets(identity)
 	
-
 	return render_template("session.html", session = session, buckets = buckets)
 
 def getBuckets(identity):
@@ -531,6 +414,190 @@ def forwardQuery(type, identity):
 
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):
 	return value.strftime(format)
+
+class UE:
+	def __init__(self, identity, identityType, userEquipment, userEquipmentType):
+		self.identity = identity
+		self.identityType = identityType
+		self.userEquipment = userEquipment
+		self.userEquipmentType = userEquipmentType
+		self.sessions = []
+		self.pcef = None
+
+	def assignPCEF(self, pcef):
+		self.pcef = pcef
+
+
+
+class PCEF:
+	def __init__(self, pcefid, ip, port):
+		#users.clear()
+		self.pcefid = pcefid
+		self.diameterIP = ip
+		self.diameterPort = port
+		self.users = {}
+		self.sessions = {}
+		self.rules = {}
+		# For the moment we leave the rules hardcoded
+		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 50000)
+		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 2000)
+		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 50000)
+		self.rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 2000)
+		self.rules["Youtube"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
+
+	def resetPCEF(self):
+		self.users.clear()
+		self.sessions.clear()
+
+	def registerUE(self, UE):
+		self.users[UE.identity] = UE
+		UE.assignPCEF(self)
+
+	def forwardQuery(self, type, identity):
+		simQuery = {}
+		simQuery = {"action":type}
+		ue = users[identity]._asdict()
+		ue.pop("sessions", None)
+		simQuery.update(ue)
+		simQuery["rat"] = 1000 #request.args["rat"]
+		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
+		return requests.get(self.diameterIP+':'+self.diameterPort+'/',params=simQuery)
+
+	def createUESession(self, identity):
+		r = forwardQuery("Start", identity)
+	
+		simulator_ans = r.content
+		ccr_cycle = json.loads(simulator_ans)
+		pcef = all_users[identity].pcef
+		sessions = pcef.sessions
+		users = pcef.users
+
+		ccr_ans = ccr_cycle["Answer"]
+		if ccr_ans["Result_Code"] == DIAMETER_SUCCESS:
+			session_id = ccr_ans["Session_Id"]
+			session = Session(identity, session_id, {}, [])
+			sessions[session_id] = session
+			users[identity].sessions.append(session)
+			print "Sessions:",users[identity].sessions
+			json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+			print "CCR Answer = ",json_pretty
+			
+			checkUsageMonitoringInfo(ccr_ans, session)
+			checkChargingRuleName(ccr_ans, session)
+
+		return ccr_ans["Result_Code"]
+
+	def terminateUESession(self,sessionid):
+		
+		session = sessions[sessionid]
+		identity = session.identity
+		#return "Deleted"
+		#Update the usage for each key
+		simQuery={"action":"Stop"}
+		simQuery["sessionid"] = session.sessionId;
+		
+		print simQuery
+		
+		ue = self.users[identity]._asdict()
+		ue.pop("sessions", None)
+		print ue
+		simQuery.update(ue)
+		#TODO: These parameters should be stored in the sessions object
+		simQuery["rat"] = 1000 #request.args["rat"]
+		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
+		
+		print simQuery
+		r = requests.get(MZ_ROOT+':12008/',params=simQuery)
+	 	simulator_ans = r.content
+		ccr_cycle = json.loads(simulator_ans)
+		
+
+		ccr_ans = ccr_cycle["Answer"]
+		if ccr_ans["Result_Code"] == 2001:
+			session_id = ccr_ans["Session_Id"]
+			
+			self.users[identity].sessions.pop(users[identity].sessions.index(session))
+			self.sessions.pop(sessionid)
+
+			json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+			print "CCR_Answer=", json_pretty
+
+			checkUsageMonitoringInfo(ccr_ans, session)
+			checkChargingRuleName(ccr_ans, session)
+			return True
+		return False
+
+	def reportSessionUsaeg(self, sessionid):
+		session = self.sessions[sessionid]
+		identity = session.identity
+		#Update the usage for each key
+		simQuery={"action":"Update"}
+		simQuery["sessionid"] = session.sessionId
+		print request.form
+		for minfo in session.monitoringInfo.values():
+			print "minfo", minfo
+			if minfo.key in request.form:
+				if request.form[minfo.key].isdigit():
+					newUsage = int(request.form[minfo.key])
+					simQuery["mk"+str(minfo.intKey)+"Name"] = minfo.key
+					simQuery["mk"+str(minfo.intKey)+"Value"]= newUsage
+					# It is ok, since I can consume data even in the PCRF does not respond
+					# Should enforce that only the granted data is allowed before requesting new
+					session.monitoringInfo[minfo.key] = minfo._replace(usage = minfo.usage+newUsage)
+					print "minfo=", session.monitoringInfo[minfo.key]
+		
+		print simQuery
+		
+		ue = self.users[identity]._asdict()
+		ue.pop("sessions", None)
+		print ue
+		simQuery.update(ue)
+		#TODO: These parameters should be stored in the sessions object
+		simQuery["rat"] = 1000 #request.args["rat"]
+		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
+		
+		print simQuery
+		r = requests.get(MZ_ROOT+':12008/',params=simQuery)
+	 	simulator_ans = r.content
+		ccr_cycle = json.loads(simulator_ans)
+		
+
+		ccr_ans = ccr_cycle["Answer"]
+		session_id = ccr_ans["Session_Id"]
+		
+		json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+		print "CCR_Answer=", json_pretty
+
+		if ccr_ans["Result_Code"] != 2001:
+			code = ccr_ans["Result_Code"]
+			return code
+		checkUsageMonitoringInfo(ccr_ans, session)
+		checkChargingRuleName(ccr_ans, session)
+
+		return ccr_ans["Result_Code"]
+
+
+def createDefaultUsersAndRegister():
+	print "Initializing default values..."
+
+	users = {}
+	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV")
+	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV")
+	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV")
+	users["460004"] = UE("460004", "IMSI", "Nokia Lumia 900", "IMEISV")
+	for ue in users.values():
+		pcefs[1].registerUE(ue)
+
+	all_users.update(users)
+	users = {}
+	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV")
+	
+	for ue in users.values():
+		pcefs[2].registerUE(ue)
+
+	all_users.update(users)
+	print ("...done")
+	print all_users	
 
 
 environment = jinja2.Environment()

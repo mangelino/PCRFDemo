@@ -20,7 +20,7 @@
 		</td>
 		<td>
 		{% for b in buckets[u.identity] %}
-		<span class="label label-primary">{{b.name}}</span></a>
+		<span class="label label-primary">{{b.name}}</span>
 		{% endfor %}
 		</td>
 		</tr>
@@ -53,9 +53,11 @@
 		<h3>Static PCEF Rules</h3> 
 	</div>
 	<div>
+	<h4>
 		{% for r in rules %}  
-		<p><a href="/pcef/rule/{{r.name}}">{{r.name}}</a></p>   
+		<span class="label label-info"><a href="/pcef/{{pcef}}/rule/{{r.name}}">{{r.name}}</a></span>
 		{% endfor %} 
+	</h4>
 	</div >  <!-- end .content -->
 
 {% endblock %}
