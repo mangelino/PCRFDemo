@@ -12,12 +12,16 @@ from pysimplesoap.client import SoapClient
 app = Flask(__name__)
 
 MZ_ROOT = "http://192.168.56.101"
+PCEF_PORT = {1:"12008", 2:"12009"}
 
 MonitoringInfo = namedtuple("MonitoringInfo", "key intKey productName gsu usu usage")
 Session = namedtuple("UserPolicy", "identity sessionId monitoringInfo installedRules")
-UE = namedtuple("UE", "identity identityType userEquipment userEquipmentType sessions")
-users = {}
-sessions = {}
+UE = namedtuple("UE", "identity identityType userEquipment userEquipmentType sessions pcef")
+#users = {}
+pcef_users = {1:{}, 2:{}}
+pcef_sessions = {1:{}, 2:{}}
+all_users = {}
+#sessions = {}
 Rule = namedtuple("Rule", "name qos uploadMin_kbs downloadMin_kbs uploadMax_kbs downloadMax_kbs")
 rules = {}
 DiameterError = namedtuple("DiamaterError", "id code description")
@@ -28,12 +32,21 @@ allowed_actions = ["Start", "Stop", "Update", "Refresh", "Reset"]
 #ans = "D_CC_Answer=[Session-Id=172021001178ggsn4.ggsn.com;1430312453633;0123456789101112131415, Auth-Application-Id=4, Origin-Host=pcrf, Origin-Realm=digitalroute.com, CC-Request-Type=2, CC-Request-Number=9, Result-Code=2001, Experimental-Result=null, Supported-Features=null, Bearer-Control-Mode=0, Event-Trigger=[5, 13, 33], Origin-State-Id=0, Redirect-Host=null, Redirect-Host-Usage=0, Redirect-Max-Cache-Time=0, Charging-Rule-Remove=null, Charging-Rule-Install=null, ADC-Rule-Remove=null, ADC-Rule-Install=null, Charging-Information=null, Online=0, Offline=0, QoS-Information=null, Revalidation-Time=null, ADC-Revalidation-Time=null, Default-EPS-Bearer-QoS=null, Bearer-Usage=0, 3GPP-User-Location-Info=null, Usage-Monitoring-Information=[D_Usage_Monitoring_Information_AVP=[Monitoring-Key=[B@6b880835, Granted-Service-Unit=[D_Granted_Service_Unit_AVP=[CC-Time=0, CC-Total-Octets=4096, CC-Input-Octets=0, CC-Output-Octets=0, Monitoring-Time=null]], Used-Service-Unit=null, Usage-Monitoring-Level=0, Usage-Monitoring-Report=0, Usage-Monitoring-Support=0, AVP=null], D_Usage_Monitoring_Information_AVP=[Monitoring-Key=[B@277295db, Granted-Service-Unit=[D_Granted_Service_Unit_AVP=[CC-Time=0, CC-Total-Octets=4096, CC-Input-Octets=0, CC-Output-Octets=0, Monitoring-Time=null]], Used-Service-Unit=null, Usage-Monitoring-Level=0, Usage-Monitoring-Report=0, Usage-Monitoring-Support=0, AVP=null]], CSG-Information-Reporting=null, User-CSG-Information=null, Error-Message=null, Error-Reporting-Host=null, Failed-AVP=null, Proxy-Info=null, Route-Record=null, AVP=null]"
 
 def initialize():
-	users.clear()
-	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", [])
-	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV", [])
-	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV", [])
-	users["460004"] = UE("460004", "IMSI", "Nokia Lumia 900", "IMEISV", [])
-	sessions.clear()
+	#users.clear()
+	users = {}
+	all_users.clear()
+	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", [],1)
+	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV", [],1 )
+	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV", [],1)
+	users["460004"] = UE("460004", "IMSI", "Nokia Lumia 900", "IMEISV", [],1)
+	pcef_users[1]=users
+	all_users.update(users)
+	users = {}
+	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV", [],2)
+	pcef_users[2]=users
+	all_users.update(users)
+	for sessions in pcef_sessions.values():
+		sessions.clear()
 	rules.clear()
 	rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 50000)
 	rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 2000)
@@ -66,7 +79,8 @@ def loadDiameterErrors():
 	diameterErrors[4002] = DiameterError(4002, "DIAMETER_OUT_OF_SPACE", "Returned by node, when it receives accounting information but unable to store it because of lack of memory ")
 	diameterErrors[4003] = DiameterError(4003, "ELECTION_LOST", "Peer determines that it has lost election by comparing Origin-Host value received in CER with its own DIAMETER IDENTITY and found that received DIAMETER IDENTITY is higher.Permanent Failures")
 
-
+	diameterErrors[4998] = DiameterError(4998, "MZ_NO_CONNECTION_TO_PEER", "")
+	diameterErrors[4998] = DiameterError(4999, "MZ_REQUEST_TIMED_OUT", "")
 	diameterErrors[5001] = DiameterError(5001, "DIAMETER_AVP_UNSUPPORTED", "AVP marked with Mandatory Bit, but peer does not support it. ")
 	diameterErrors[5002] = DiameterError(5002, "DIAMETER_UNKNOWN_SESSION_ID", "DIAMETER_AUTHORIZATION_REJECTED5003")
 
@@ -100,8 +114,9 @@ def list_usecases():
 	return render_template("usecases.html")
 
 @app.route("/usecase/<int:id>", methods=["POST"])
-def usecase_provisioning(id):
-	func = [provisionCase1, provisionCase2, provisionCase3, provisionCase4, provisionCase5]
+def usecase_provisioning(id = None):
+	func = [provisionCase1, provisionCase2, provisionCase3, provisionCase4, provisionCase5, provisionCase6]
+	#print id, func[id-1]
 	if func[id-1](request.form) == 0:
 		flask.flash("Subscription successfully created")
 		return flask.redirect("/usecases")
@@ -170,13 +185,23 @@ def provisionCase1(form):
 
 	return response['ErrorCode']
 
+def provisionCase6(form):
+	imsi = 462005
+	if len(form["IMSI"]) > 0:
+		imsi = form["IMSI"]
+	
+	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
+	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=1)
+
+	return response['ErrorCode']
+
 def provisionGenericCase(imsi, productId):
 	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
 	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=productId)
 
 @app.route("/usecase/<int:id>", methods=["GET"])
 def usecase_listing(id=None):
-	if id<1 or id>5:
+	if id<1 or id>6:
 		abort(404)
 	return render_template("usecase"+str(id)+".html")
 
@@ -185,19 +210,20 @@ def usecase_listing(id=None):
 
 @app.route("/ue/", methods=['GET'])
 def list_ue():
-	return render_template('list_ue.html', ues=users)
+	return render_template('list_ue.html', ues=all_users)
 
 
 @app.route("/ue/<identity>", methods=['GET'])
 def list_ue_sessions(identity = None):
-	if not identity in users:
+	if not identity in all_users:
 		abort(404)
+
 	buckets = getBuckets(identity)
-	return render_template('ue.html', ue = users[identity], buckets = buckets);
+	return render_template('ue.html', ue = all_users[identity], buckets = buckets);
 
 @app.route("/ue/<identity>/sessions", methods=['POST'])
 def create_ue_session(identity = None):
-	if not identity in users:
+	if not identity in all_users:
 		abort(404)
 	
 	#Invokes the simulator on MZ
@@ -205,7 +231,9 @@ def create_ue_session(identity = None):
 	
 	simulator_ans = r.content
 	ccr_cycle = json.loads(simulator_ans)
-	
+	pcefNode = all_users[identity].pcef
+	sessions = pcef_sessions[pcefNode]
+	users = pcef_users[pcefNode]
 
 	ccr_ans = ccr_cycle["Answer"]
 	if ccr_ans["Result_Code"] == 2001:
@@ -237,27 +265,32 @@ def list_ue_session(identity = None):
 
 @app.route("/ue/<identity>/session/<sessionid>", methods=['GET'])
 def monitor_ue_session(identity=None, sessionid = None):
-	if not identity in users:
+	if not identity in all_users:
 		abort(404)
+	pcefNode = all_users[identity].pcef
+	sessions = pcef_sessions[pcefNode]
 	if not sessionid in sessions or sessions[sessionid].identity != identity:
 		abort(404)
 	buckets = getBuckets(identity)
-	return render_template("session.html", session = sessions[sessionid], buckets = buckets)
+	return render_template("session.html", session = sessions[sessionid], buckets = buckets, pcef = pcefNode)
 
 
 # PCEF
 
-@app.route("/pcef/", methods=['GET'])
-def pcef():	
+@app.route("/pcef/<int:pcefid>/", methods=['GET'])
+def pcef(pcefid=None):	
 	buckets = {}
+	users = pcef_users[pcefid]
+	sessions= pcef_sessions[pcefid]
 	for identity in users:
 		userBuckets = getBuckets(identity)
 		buckets[identity] = userBuckets
 	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=rules.values())
 
 
-@app.route("/pcef/sessions/<sessionid>", methods=['GET'])
-def monitor_pcef_session(sessionid=None):
+@app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods=['GET'])
+def monitor_pcef_session(pcefid=None,sessionid=None):
+	sessions = pcef_sessions[pcefid]
 	if not sessionid in sessions:
 		abort(404)	
 	return render_template("session.html", session = sessions[sessionid])
@@ -272,15 +305,18 @@ def pcef_rule(ruleid = None):
 		abort(404)
 	return render_template("pcef_rule.html", rule = rules[ruleid])
 
-@app.route("/pcef/sessions", methods = ["GET"])
-def pcef_list_sessions():
+@app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
+def pcef_list_sessions(pcefid=None):
+	sessions = pcef_sessions[pcefid]
 	return render_template("pcef_sessions.html", sessions = sessions)
 
-@app.route("/pcef/sessions/<sessionid>", methods = ["DELETE"])
-def pcef_delete_session(sessionid = None):
+@app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["DELETE"])
+def pcef_delete_session(pcefid=None,sessionid = None):
 	print "Delete request for ", sessionid
+	sessions = pcef_sessions[pcefid]
 	if not sessionid in sessions:
 		abort(404)
+	sessions = pcef_sessions[pcefid]
 	session = sessions[sessionid]
 	identity = session.identity
 	#return "Deleted"
@@ -299,7 +335,7 @@ def pcef_delete_session(sessionid = None):
 	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
 	
 	print simQuery
-	r = requests.get('http://192.168.56.101:12008/',params=simQuery)
+	r = requests.get(MZ_ROOT+':12008/',params=simQuery)
  	simulator_ans = r.content
 	ccr_cycle = json.loads(simulator_ans)
 	
@@ -323,10 +359,12 @@ def pcef_delete_session(sessionid = None):
 		return render_template("diameter_error.html", error = diameterErrors[int(ccr_ans["Result_Code"])])
 
 
-@app.route("/pcef/sessions/<sessionid>", methods = ["POST"])
-def pcef_report_session_usage(sessionid = None):
-	if not sessionid in sessions:
+@app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
+def pcef_report_session_usage(sessionid = None, pcefid=None):
+	if not sessionid in pcef_sessions[pcefid]:
 		abort(404)
+	sessions = pcef_sessions[pcefid]
+	users = pcef_users[pcefid]
 	session = sessions[sessionid]
 	identity = session.identity
 	#Update the usage for each key
@@ -356,7 +394,7 @@ def pcef_report_session_usage(sessionid = None):
 	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
 	
 	print simQuery
-	r = requests.get('http://192.168.56.101:12008/',params=simQuery)
+	r = requests.get(MZ_ROOT+':12008/',params=simQuery)
  	simulator_ans = r.content
 	ccr_cycle = json.loads(simulator_ans)
 	
@@ -384,7 +422,7 @@ def getBuckets(identity):
 	# ue.pop("sessions", None)
 	# print ue
 	# simQuery.update(ue)
-	r = requests.get('http://192.168.56.101:12008/',params=simQuery)
+	r = requests.get(MZ_ROOT+':12008/',params=simQuery)
 	simulator_ans = r.content
 	buckets = json.loads(simulator_ans)
 	json_pretty = json.dumps(buckets, sort_keys = True, indent = 4, separators = (', ', ': '))
@@ -394,7 +432,7 @@ def getBuckets(identity):
 @app.route("/bdh", methods=["GET"])
 def show_bucket_data_holder():
 	buckets = {}
-	for identityid in users:
+	for identityid in all_users:
 		userBuckets = getBuckets(identityid)		
 		buckets[identityid] = userBuckets;
 	userBuckets = getBuckets("grp1")
@@ -407,13 +445,13 @@ def show_bucket_data_holder():
 # 	if "action" in request.form:
 # 		simQuery={"action":request.form["action"]}
 
-# 		r = requests.get('http://192.168.56.101:12008/',params=simQuery)
+# 		r = requests.get(MZ_ROOT+':12008/',params=simQuery)
 #  		simulator_ans = r.content
  	
 
 @app.route("/bdh/<identityid>", methods=["GET"])
 def view_bdh(identityid=None):
-	if not identityid in users and identityid != "grp1":
+	if not identityid in all_users and identityid != "grp1":
 		abort(404)
 
 	buckets = getBuckets(identityid);
@@ -422,7 +460,7 @@ def view_bdh(identityid=None):
 
 @app.route("/bdh/<identity>", methods=["POST"])
 def reset_bdh(identity=None):
-	if not identity in users and identity!="grp1":
+	if not identity in all_users and identity!="grp1":
 		abort(404)
 
 	if "action" in request.form and request.form["action"] == "Reset BDH":
@@ -432,7 +470,7 @@ def reset_bdh(identity=None):
 		# ue.pop("sessions", None)
 		# print ue
 		# simQuery.update(ue)
-		r = requests.get('http://192.168.56.101:12008/',params=simQuery)
+		r = requests.get(MZ_ROOT+':12008/',params=simQuery)
 		simulator_ans = r.content
 		buckets = json.loads(simulator_ans)
 		json_pretty = json.dumps(buckets, sort_keys = True, indent = 4, separators = (', ', ': '))
@@ -474,20 +512,22 @@ def baToStr(byteArray):
 
 def printSessions(sessions):
 	print "Sessions"
-	for s in sessions:
-		print s.identity, s.monitoringInfo
-		for minfo  in s.monitoringInfo.values():
-			print minfo.key, minfo.gsu, minfo.usage
+	for sessions in pcef_sessions.values():
+		for s in sessions:
+			print s.identity, s.monitoringInfo
+			for minfo  in s.monitoringInfo.values():
+				print minfo.key, minfo.gsu, minfo.usage
 
 def forwardQuery(type, identity):
 	simQuery = {}
 	simQuery = {"action":type}
-	ue = users[identity]._asdict()
+	ue = all_users[identity]._asdict()
 	ue.pop("sessions", None)
 	simQuery.update(ue)
 	simQuery["rat"] = 1000 #request.args["rat"]
 	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-	return requests.get('http://192.168.56.101:12008/',params=simQuery)
+	pcefNode = all_users[identity].pcef
+	return requests.get(MZ_ROOT+':'+PCEF_PORT[pcefNode]+'/',params=simQuery)
 
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):
 	return value.strftime(format)
