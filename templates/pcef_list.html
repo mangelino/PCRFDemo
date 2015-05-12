@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}PCEF{% endblock %}
+{% block content %}
+
+
+	<div class="row">
+		{% for p in pcefs %} 
+		<div class="col-sm-4 well">
+			<a href="/pcef/{{p.id}}">{{p.name}}</a>
+		</div> 
+		{% endfor %}
+	</div>
+	
+{% endblock %}
