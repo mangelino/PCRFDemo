@@ -1,11 +1,12 @@
 class UE:
-	def __init__(self, identity, identityType, userEquipment, userEquipmentType):
+	def __init__(self, identity, identityType, userEquipment, userEquipmentType, isAtHome=0):
 		self.identity = identity
 		self.identityType = identityType
 		self.userEquipment = userEquipment
 		self.userEquipmentType = userEquipmentType
 		self.sessions = []
 		self.pcef = None
+		self.isAtHome = isAtHome
 
 	def assignPCEF(self, pcef):
 		self.pcef = pcef
@@ -16,4 +17,5 @@ class UE:
 		res["identityType"] = self.identityType
 		res["userEquipment"] = self.userEquipment
 		res["userEquipmentType"] = self.userEquipmentType
+		res["isAtHome"] = self.isAtHome
 		return res

@@ -49,7 +49,8 @@ class PCEF:
 		rules = None
 		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 			session_id = ccr_ans["Session_Id"]
-			session = Session(identity, session_id, {}, [])
+			atHome = self.users[identity].isAtHome
+			session = Session(identity, session_id, {}, [], atHome)
 			self.sessions[session_id] = session
 			self.users[identity].sessions.append(session)
 			print "Sessions:",self.users[identity].sessions

@@ -10,6 +10,7 @@
 				<th>Identity Type</th>
 				<th>Equipment</th>
 				<th>Equipment Type</th>
+				<th>Location</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -19,6 +20,13 @@
 				<td> {{ ue.identityType }} </td>
 				<td> {{ ue.userEquipment }} </td>
 				<td> {{ ue.userEquipmentType }} </td>
+				<td>
+					{% if ue.isAtHome==1 %}
+					At Home <span class="glyphicon glyphicon-home"></span> 
+					{% else %}
+					Not at Home <span class="glyphicon glyphicon-tree-deciduous"></span>
+					{% endif %}
+				</td>
 			</tr>
 			{% endfor %}
 		</tbody>

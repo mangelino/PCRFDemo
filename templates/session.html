@@ -25,6 +25,9 @@ function deleteSession(id) {
 			<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
 		</tr>
 		<tr>
+			<td>Location</td><td>{% if session.atHomeLocation %}At Home<span class="glyphicon glyphicon-home"></span>{% else %}Not at Home<span class="glyphicon glyphicon-tree-deciduous"></span>{% endif %}</td>
+		</tr>
+		<tr>
 		<td>Rules</td>
 		<td>
 		<h4>

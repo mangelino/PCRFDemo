@@ -45,7 +45,7 @@ def list_usecases():
 
 @app.route("/usecase/<int:id>", methods=["POST"])
 def usecase_provisioning(id = None):
-	func = [provisionCase1, provisionCase2, provisionCase3, provisionCase4, provisionCase5, provisionCase6]
+	func = [provisionCase1, provisionCase2, provisionCase3, provisionCase4, provisionCase5, provisionCase6, provisionCase7]
 	#print id, func[id-1]
 	if func[id-1](request.form) == 0:
 		flask.flash("Subscription successfully created")
@@ -125,13 +125,23 @@ def provisionCase6(form):
 
 	return response['ErrorCode']
 
+def provisionCase7(form):
+	imsi = 462005
+	if len(form["IMSI"]) > 0:
+		imsi = form["IMSI"]
+	
+	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
+	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=6)
+
+	return response['ErrorCode']
+
 def provisionGenericCase(imsi, productId):
 	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
 	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=productId)
 
 @app.route("/usecase/<int:id>", methods=["GET"])
 def usecase_listing(id=None):
-	if id<1 or id>6:
+	if id<1 or id>7:
 		abort(404)
 	return render_template("usecase"+str(id)+".html")
 
@@ -243,11 +253,13 @@ def pcef_report_session_usage(sessionid = None, pcefid=None):
 	if (res[0] != PCC.DIAMETER_SUCCESS):
 		code = res[0]
 		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description)
+	else:
+		notifyRules(res[1])
+		#return flask.redirect("/pcef/"+str(pcefid)+"/sessions/"+sessionid)
+	session = pcefs[pcefid].sessions[sessionid]
+	buckets = getBuckets(session.identity)
 	
-	notifyRules(res[1])
-	buckets = getBuckets(identity)
-	
-	return render_template("session.html", session = session, buckets = buckets)
+	return render_template("session.html", session = session, buckets = buckets, pcef = pcefs[pcefid])
 
 def notifyRules(rules):
 	for k in rules.keys():
@@ -315,18 +327,6 @@ def reset_bdh(identity=None):
 	abort(404)
 
 
-
-# def forwardQuery(type, identity):
-# 	simQuery = {}
-# 	simQuery = {"action":type}
-# 	ue = all_users[identity]._asdict()
-	
-# 	simQuery.update(ue)
-# 	simQuery["rat"] = 1000 #request.args["rat"]
-# 	simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-# 	pcefNode = all_users[identity].pcef
-# 	return requests.get(MZ_ROOT+':'+PCEF_PORT[pcefNode]+'/',params=simQuery)
-
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):
 	return value.strftime(format)
 
@@ -346,7 +346,7 @@ def createDefaultUsersAndRegister():
 
 	all_users.update(users)
 	users = {}
-	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV")
+	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV", 1)
 	
 	for ue in users.values():
 		pcefs[2].registerUE(ue)
