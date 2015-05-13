@@ -56,3 +56,27 @@ def loadDiameterErrors():
 	diameterErrors[5016] = DiameterError(5016, "DIAMETER_INVALID_AVP_BIT_COMBO", "E.g. Marking AVP to Mandatory while message definition doesn't say so. ")
 	diameterErrors[5017] = DiameterError(5017, "DIAMETER_NO_COMMON_SECURITY", "In response of CER if no common security mechanism supported between the peers.")
 	diameterErrors[5030] = DiameterError(5030, "SUBSCRIBER_DOES_NOT_EXISTS", "Subscriber does not exists in the repository")
+
+class RulesActions:
+	def __init__(self):
+		self.install = set()
+		self.remove = set()
+
+	def merge(self, rules):
+		self.install = self.install.union(rules.install).difference(rules.remove)
+		self.remove = self.remove.union(rules.remove).difference(rules.install)
+
+	def installRule(self, rule):
+		if rule in self.remove:
+			self.remove.remove(rule)
+		else:
+			self.install.add(rule)
+
+	def removeRule(self, rule):
+		if rule in self.install:
+			self.install.remove(rule)
+		else:
+			self.remove.add(rule)
+
+	def asDict(self):
+		return {"install":list(self.install), "remove":list(self.remove)}

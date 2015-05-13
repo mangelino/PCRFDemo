@@ -1,4 +1,4 @@
-from PCC import Rule, Session, MonitoringInfo
+from PCC import Rule, Session, MonitoringInfo, RulesActions
 import PCC
 import requests
 import json
@@ -43,14 +43,14 @@ class PCEF:
 		r = self.forwardQuery("Start", identity)
 	
 		simulator_ans = r.content
-		ccr_cycle = json.loads(simulator_ans)
+		ccr_cycle_list = json.loads(simulator_ans)
 		
-		ccr_ans = ccr_cycle["Answer"]
-		rules = None
+		ccr_ans = ccr_cycle_list[0]["Answer"]
+		rules = RulesActions()
 		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 			session_id = ccr_ans["Session_Id"]
 			atHome = self.users[identity].isAtHome
-			session = Session(identity, session_id, {}, [], atHome)
+			session = Session(identity, session_id, {}, set(), atHome)
 			self.sessions[session_id] = session
 			self.users[identity].sessions.append(session)
 			print "Sessions:",self.users[identity].sessions
@@ -58,9 +58,10 @@ class PCEF:
 			print "CCR Answer = ",json_pretty
 			
 			checkUsageMonitoringInfo(ccr_ans, session)
-			rules = checkChargingRuleName(ccr_ans, session)
+			rules = checkChargingRuleName(ccr_ans)
+			updateSession(session, rules)
 
-		return (ccr_ans["Result_Code"], rules)
+		return (ccr_ans["Result_Code"], rules.asDict())
 
 	def terminateUESession(self,sessionid):
 		
@@ -84,10 +85,10 @@ class PCEF:
 		print simQuery
 		r = requests.get(self.simEndPoint(),params=simQuery)
 	 	simulator_ans = r.content
-		ccr_cycle = json.loads(simulator_ans)
+		ccr_cycle_list = json.loads(simulator_ans)
 		
 
-		ccr_ans = ccr_cycle["Answer"]
+		ccr_ans = ccr_cycle_list[0]["Answer"]
 		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 			session_id = ccr_ans["Session_Id"]
 			
@@ -134,25 +135,45 @@ class PCEF:
 		print simQuery
 		r = requests.get(self.simEndPoint(),params=simQuery)
 	 	simulator_ans = r.content
-		ccr_cycle = json.loads(simulator_ans)
-		
+		ccr_cycle_list = json.loads(simulator_ans)
+		rules = RulesActions()
+		result_code = PCC.DIAMETER_SUCCESS
 
-		ccr_ans = ccr_cycle["Answer"]
-		session_id = ccr_ans["Session_Id"]
-		
-		json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-		print "CCR_Answer=", json_pretty
-		rules = None
-		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
-		
-			checkUsageMonitoringInfo(ccr_ans, session)
-			rules = checkChargingRuleName(ccr_ans, session)
+		for ccr_cycle in ccr_cycle_list:
 
-		return (int(ccr_ans["Result_Code"]), rules)
+			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
+				ccr_ans = ccr_cycle["Answer"]
+				session_id = ccr_ans["Session_Id"]
+				
+				json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+				print "RA=", json_pretty
+				result_code = ccr_ans["Result_Code"] 
+				if result_code == PCC.DIAMETER_SUCCESS:
+				
+					checkUsageMonitoringInfo(ccr_ans, session)
+					rules.merge(checkChargingRuleName(ccr_ans))
+			else:
+				# If the answer is nothing, then this is a RAR message, hence the info is in the request
+				ccr_req = ccr_cycle["Request"]
+				session_id = ccr_req["Session_Id"]
+			
+				json_pretty = json.dumps(ccr_req, sort_keys = True, indent = 4, separators = (', ', ': '))
+				print "RAR=", json_pretty
+				rules.merge(checkChargingRuleName(ccr_req))
+
+		updateSession(session, rules)
+
+		return (result_code, rules.asDict())
 
 	def simEndPoint(self):
 		return self.diameterIP+':'+self.diameterPort+'/'
 
+def updateSession(session, rules):
+	# Update installed sessions rules
+	for rule in rules.install:
+		session.installedRules.add(rule)
+	for rule in rules.remove:
+		session.installedRules.discard(rule)
 
 def checkUsageMonitoringInfo(ccr_ans, session):
 	if "Usage_Monitoring_Information"  in ccr_ans:
@@ -167,21 +188,20 @@ def checkUsageMonitoringInfo(ccr_ans, session):
 			session.monitoringInfo[mkey] = minfo._replace(gsu = monitoring_info['Granted_Service_Unit'][0]['CC_Total_Octets'])
 			print "minfo=", session.monitoringInfo[mkey]
 
-def checkChargingRuleName(ccr_ans, session):
+def checkChargingRuleName(ccr_ans):
 
-	rules = {"install":[], "remove":[]}
+	rules = RulesActions()
 	if "Charging_Rule_Install" in ccr_ans:
 		for chargingRule in ccr_ans["Charging_Rule_Install"]:
 			for chargingRuleName in chargingRule["Charging_Rule_Name"]:
-				session.installedRules.append(baToStr(chargingRuleName))
-				rules["install"].append(baToStr(chargingRuleName))
+				#session.installedRules.append(baToStr(chargingRuleName))
+				rules.installRule(baToStr(chargingRuleName))
 	if "Charging_Rule_Remove" in ccr_ans:
 		for chargingRule in ccr_ans["Charging_Rule_Remove"]:
 			for chargingRuleName in chargingRule["Charging_Rule_Name"]:
-				if baToStr(chargingRuleName) in session.installedRules:
-					index = session.installedRules.index(baToStr(chargingRuleName))
-					rules["remove"].append(baToStr(chargingRuleName))
-					session.installedRules.pop(index)
+					#index = session.installedRules.index(baToStr(chargingRuleName))
+				rules.removeRule(baToStr(chargingRuleName))
+					#session.installedRules.pop(index)
 	return rules
 
 
