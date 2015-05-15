@@ -44,7 +44,7 @@ class PCEF:
 	
 		simulator_ans = r.content
 		ccr_cycle_list = json.loads(simulator_ans)
-		
+		session = None
 		ccr_ans = ccr_cycle_list[0]["Answer"]
 		rules = RulesActions()
 		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
@@ -61,7 +61,7 @@ class PCEF:
 			rules = checkChargingRuleName(ccr_ans)
 			updateSession(session, rules)
 
-		return (ccr_ans["Result_Code"], rules.asDict())
+		return (ccr_ans["Result_Code"], session, rules.asDict())
 
 	def terminateUESession(self,sessionid):
 		
@@ -106,9 +106,16 @@ class PCEF:
 	def reportSessionUsage(self, sessionid, request):
 		session = self.sessions[sessionid]
 		identity = session.identity
+		atHome = int(request.form["isAtHome"])
+		print session, atHome
+		if atHome != session.atHomeLocation:
+			self.sessions[sessionid] = session._replace(atHomeLocation = atHome)
+			session = self.sessions[sessionid]
+		print session
 		#Update the usage for each key
 		simQuery={"action":"Update"}
 		simQuery["sessionid"] = session.sessionId
+		simQuery["isAtHome"] = session.atHomeLocation
 		print request.form
 		for minfo in session.monitoringInfo.values():
 			print "minfo", minfo

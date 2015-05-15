@@ -16,7 +16,8 @@ function deleteSession(id) {
 
   
 	      
-	<h2>Session</h2>        
+	<h2>Session</h2>     
+	<form action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" method="post">   
 	<table class="table">    
 		<tr>
 				<td>Session Id</td><td> {{session.sessionId}} </td>
@@ -25,7 +26,16 @@ function deleteSession(id) {
 			<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
 		</tr>
 		<tr>
-			<td>Location</td><td>{% if session.atHomeLocation %}At Home<span class="glyphicon glyphicon-home"></span>{% else %}Not at Home<span class="glyphicon glyphicon-tree-deciduous"></span>{% endif %}</td>
+		<td>Location</td><td>
+			<label class="radio-inline">
+  <input type="radio" name="isAtHome" id="isAtHome_False" value="0" {% if not session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-tree-deciduous"></span>
+</label>
+<label class="radio-inline">
+  <input type="radio" name="isAtHome" id="isAtHome_True" value="1" {% if session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-home"></span>
+</label>
+</td>
+<!--
+			<td>Location</td><td>{% if session.atHomeLocation %}At Home<span class="glyphicon glyphicon-home"></span>{% else %}Not at Home<span class="glyphicon glyphicon-tree-deciduous"></span>{% endif %}</td> -->
 		</tr>
 		<tr>
 		<td>Rules</td>
@@ -44,7 +54,7 @@ function deleteSession(id) {
 	</div>
 	<div class="row well">
 
-	<form action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" method="post">
+	
 	<div class="col-md-10">
 		<table class="table">
 			<thead>
@@ -113,7 +123,7 @@ function deleteSession(id) {
   	</div>
 </div>
 	<div style="padding-top:20px;">
-	<button onclick='deleteSession("{{session.sessionId}}");' type="button" class="btn btn-danger">Delete session</button>
+	<button onclick='deleteSession("{{session.sessionId}}");' type="button" class="btn btn-danger">Terminate session</button>
 	</div>
 
 

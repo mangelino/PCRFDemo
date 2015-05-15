@@ -3,6 +3,21 @@
 {% block content %}
 
   
+<div class="row">
+ {%for ue in ues %}
+  	<div class="col-xs-6 col-xs-2">
+	    <div  class="thumbnail">
+	      <a href="/ue/{{ue.identity}}"><img src="/assets/images/{{ue.userEquipment}}.png" alt="{{ue.userEquipment}}"></a>
+	      <div class="caption">
+	        <h5>{{ ue.identity }}</h5>
+	        <form method="POST" action="/ue/{{ue.identity}}/sessions">
+	        <p><button class="btn btn-xs btn-default" role="button">Create session</button></p></form>
+	      </div>
+	    </div>
+	</div>
+	{% endfor %}
+</div>
+
 	<table class="table">    
 		<thead>
 			<tr>      
@@ -10,11 +25,11 @@
 				<th>Identity Type</th>
 				<th>Equipment</th>
 				<th>Equipment Type</th>
-				<th>Location</th>
+				<th>Default Location</th>
 			</tr>
 		</thead>
 		<tbody>
-			{% for ue in ues.values() %}
+			{% for ue in ues %}
 			<tr>
 				<td> <a href="/ue/{{ue.identity}}"> {{ ue.identity }} </a></td>
 				<td> {{ ue.identityType }} </td>

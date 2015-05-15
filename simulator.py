@@ -32,6 +32,12 @@ def initialize():
 	createDefaultUsersAndRegister()
 	print "Init users: ", all_users
 	
+
+@app.route('/')
+def root():
+	return render_template("landing.html", mzIP=MZ_ROOT)
+
+
 @app.route('/assets/<path:path>')
 def send_js(path):
 	print path
@@ -151,7 +157,7 @@ def usecase_listing(id=None):
 @app.route("/ue/", methods=['GET'])
 def list_ue():
 	print all_users.keys()
-	return render_template('list_ue.html', ues=all_users)
+	return render_template('list_ue.html', ues=sorted(all_users.values(), key=lambda k: k.identity))
 
 
 @app.route("/ue/<identity>", methods=['GET'])
@@ -171,8 +177,8 @@ def create_ue_session(identity = None):
 	res = pcef.createUESession(identity)
 
 	if res[0] == PCC.DIAMETER_SUCCESS:
-		notifyRules(res[1])
-		return flask.redirect("/ue/"+identity)
+		notifyRules(res[2])
+		return flask.redirect("/ue/"+identity+"/session/"+res[1].sessionId)
 	else:
 		return render_template("diameter_error.html", error = diameterErrors[int(res[0])])
 
@@ -284,7 +290,9 @@ def show_bucket_data_holder():
 		buckets[identityid] = userBuckets;
 	userBuckets = getBuckets("grp1")
 	buckets["grp1"] = userBuckets;
+
 	return render_template("bdh.html", buckets = buckets)
+
 
 
 # @app.route("/bdh", methods=["POST"])
@@ -296,21 +304,12 @@ def show_bucket_data_holder():
 #  		simulator_ans = r.content
  	
 
-@app.route("/bdh/<identityid>", methods=["GET"])
-def view_bdh(identityid=None):
-	if not identityid in all_users and identityid != "grp1":
-		abort(404)
-
-	buckets = getBuckets(identityid);
-	
-	return render_template("ue_bdh.html", identityid = identityid, buckets = buckets)
-
 @app.route("/bdh/<identity>", methods=["POST"])
 def reset_bdh(identity=None):
 	if not identity in all_users and identity!="grp1":
 		abort(404)
 
-	if "action" in request.form and request.form["action"] == "Reset BDH":
+	if "action" in request.form and request.form["action"] == "Remove":
 		initialize()
 		simQuery={"action":"Reset BDH", "identity":identity}
 		# ue = users[identityid]._asdict()
@@ -340,7 +339,7 @@ def createDefaultUsersAndRegister():
 	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV")
 	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV")
 	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV")
-	users["460004"] = UE("460004", "IMSI", "Nokia Lumia 900", "IMEISV")
+	users["460004"] = UE("460004", "IMSI", "Sony Xperia", "IMEISV")
 	for ue in users.values():
 		pcefs[1].registerUE(ue)
 

@@ -4,7 +4,7 @@ DIAMETER_SUCCESS = 2001
 
 Rule = namedtuple("Rule", "name qos uploadMin_kbs downloadMin_kbs uploadMax_kbs downloadMax_kbs")
 MonitoringInfo = namedtuple("MonitoringInfo", "key intKey productName gsu usu usage")
-Session = namedtuple("UserPolicy", "identity sessionId monitoringInfo installedRules atHomeLocation")
+Session = namedtuple("Session", "identity sessionId monitoringInfo installedRules atHomeLocation")
 
 DiameterError = namedtuple("DiamaterError", "id code description")
 diameterErrors = {}

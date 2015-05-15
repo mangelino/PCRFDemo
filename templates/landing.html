@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}PCEF{% endblock %}
+{% block content %}
+
+	<div class="page-header">
+	<h2>Introduction</h2>
+	</div>
+	<p>The PCC Demo is built around several Use Cases that show the capabilities of the Digital Route PCRF solution.</p>
+	<p>The user interface is organized in several screens, each displaying one of the entities or entity category involved in the demo.</p>
+	<h4>UE</h4>
+	<p>The <a href="/ue">UE</a> menu gives access to all the simulated user terminals. Each terminal is by default linked to a certain use case, but any terminal can be used for any case. The terminal <a href="/ue/4260005">4620005</a> is simulated as being registered on a different gateway (PCEF) which will be used to show the last two use cases.</p>
+	<p>From the UE page it is possible to directly create a new session (that is, simulating that the terminal is attached to the network using an IP-CAN), or to access the UE detials. In the UE details window it is possible to see all active sessions as registered by the PCEF, and the status of the buckets associated to the UE, fetched from the PCRF/Service Control</p>
+	<h4>PCEF</h4>
+	<p>The demo consists of 2 PCEFs. By clicking on a PCEF a detail screen showing the PCEF's status is shown, that is the list of active sessions, and the set of Static Rules that are configured on the PCEF and that can be activated/deactivated by the PCRF.</p>
+	<h4>BDH/PCRF</h4>
+	The BDH (Bucket Data Holder) menu is a view into the status of the PCRF. The same information cane be obtained by accessing the <a href="{{mzIP}}:9000/mz">Service Control UI</a>. All buckets currently active are listed, and by selecting any of the buckets it is possible to 
+	<div class="page-header">
+	<h2>Use Cases</h2>
+	</div>
+	<div class="page-header">
+	<h3>Bucket limit</h2>
+	</div>
+	
+	
+{% endblock %}

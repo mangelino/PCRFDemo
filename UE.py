@@ -17,5 +17,5 @@ class UE:
 		res["identityType"] = self.identityType
 		res["userEquipment"] = self.userEquipment
 		res["userEquipmentType"] = self.userEquipmentType
-		res["isAtHome"] = self.isAtHome
+		#res["isAtHome"] = self.isAtHome
 		return res
