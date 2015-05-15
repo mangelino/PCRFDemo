@@ -6,6 +6,8 @@ from flask import request
 import requests
 import json
 import jinja2
+import datetime
+from dateutil import parser
 
 from pysimplesoap.client import SoapClient
 from UE import UE
@@ -53,18 +55,26 @@ def list_usecases():
 def usecase_provisioning(id = None):
 	func = [provisionCase1, provisionCase2, provisionCase3, provisionCase4, provisionCase5, provisionCase6, provisionCase7]
 	#print id, func[id-1]
-	if func[id-1](request.form) == 0:
+	res = func[id-1](request.form)
+	if res == 0:
 		flask.flash("Subscription successfully created")
-		return flask.redirect("/usecases")
+		
 	else:
-		abort(404)
+		flask.flash("Error"+str(res))
+
+	return flask.redirect("/usecases")
 
 def provisionCase5(form):
 	imsi = 460001
+	prodId=0
 	if len(form["IMSI"]) > 0:
 		imsi = request.form["IMSI"]
+	if len(form["ProductID"]) > 0:
+		prodId = int(request.form["ProductID"])
+	else:
+		return "Missing Product ID to provision. Enter the Product ID shown in the Service Control screen from MZ"
 	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
-	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=5)
+	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=prodId)
 	return response['ErrorCode']
 
 def provisionCase4(form):
@@ -212,7 +222,7 @@ def pcef(pcefid=None):
 	for identity in users:
 		userBuckets = getBuckets(identity)
 		buckets[identity] = userBuckets
-	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].rules.values())
+	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].rules.values(), pcef=pcefid)
 
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods=['GET'])
@@ -220,34 +230,36 @@ def monitor_pcef_session(pcefid=None,sessionid=None):
 	sessions = pcefs[pcefid].sessions
 	if not sessionid in sessions:
 		abort(404)	
-	return render_template("session.html", session = sessions[sessionid])
+	return render_template("session.html", pcefid = pcefid, session = sessions[sessionid])
 
 @app.route("/pcef/<int:pcefid>/rules", methods=['GET'])
 def pcef_list_rules(pcefid=None):
 	return render_template("pcef_list_rules.html", rules = pcefs[pcefid].rules)
 
-@app.route("/pcef/rule/<ruleid>", methods = ['GET'])
-def pcef_rule(ruleid = None):
-	if not ruleid in rules:
+@app.route("/pcef/<int:pcefid>/rule/<ruleid>", methods = ['GET'])
+def pcef_rule(ruleid = None, pcefid=None):
+	if not ruleid in pcefs[pcefid].rules:
 		abort(404)
-	return render_template("pcef_rule.html", rule = rules[ruleid])
+	return render_template("pcef_rule.html", rule = pcefs[pcefid].rules[ruleid])
 
 @app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
 def pcef_list_sessions(pcefid=None):
 	sessions = pcefs[pcefid].sessions
 	return render_template("pcef_sessions.html", sessions = sessions)
 
-@app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["DELETE"])
+@app.route("/pcef/<int:pcefid>/sessions/delete/<sessionid>", methods = ["POST"])
 def pcef_delete_session(pcefid=None,sessionid = None):
 	print "Delete request for ", sessionid
 	if not sessionid in pcefs[pcefid].sessions:
 		abort(404)
+	session = pcefs[pcefid].sessions[sessionid]
+	identity = session.identity
 
-	result_code = pcefs[pcefid].terminateUESession(identity)
-	if result_code == DIAMETER_SUCCESS:
+	result_code = pcefs[pcefid].terminateUESession(sessionid)
+	if result_code == PCC.DIAMETER_SUCCESS:
 		return flask.redirect("/ue/"+identity, code=303)
 	else:
-		return render_template("diameter_error.html", error = diameterErrors[result_code])
+		return render_template("diameter_error.html", error = PCC.diameterErrors[result_code])
 
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
@@ -309,7 +321,7 @@ def reset_bdh(identity=None):
 	if not identity in all_users and identity!="grp1":
 		abort(404)
 
-	if "action" in request.form and request.form["action"] == "Remove":
+	if "action" in request.form and request.form["action"].startswith("Remove"):
 		initialize()
 		simQuery={"action":"Reset BDH", "identity":identity}
 		# ue = users[identityid]._asdict()
@@ -321,13 +333,25 @@ def reset_bdh(identity=None):
 		buckets = json.loads(simulator_ans)
 		json_pretty = json.dumps(buckets, sort_keys = True, indent = 4, separators = (', ', ': '))
 		print "Buckets=", json_pretty
-		return flask.redirect("/bdh")
+		return flask.redirect(request.referrer)
 			#ue_bdh.html", identityid = identityid, buckets = buckets)
 	abort(404)
 
 
+@app.context_processor
+def my_utilities():
+
+	def date_now():
+		return datetime.datetime.now()
+
+	def unicodeToDatetime(unicodeDate):
+		return parser.parse(unicodeDate).replace(tzinfo=None)
+
+	return dict(date_now=date_now, unicodeToDatetime=unicodeToDatetime)
+
+
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):
-	return value.strftime(format)
+		return value.strftime(format)
 
 #
 # Init
@@ -345,7 +369,7 @@ def createDefaultUsersAndRegister():
 
 	all_users.update(users)
 	users = {}
-	users["462005"] = UE("462005", "IMSI", "Nokia Lumia 900", "IMEISV", 1)
+	users["462005"] = UE("462005", "IMSI", "Sony Xperia", "IMEISV", 1)
 	
 	for ue in users.values():
 		pcefs[2].registerUE(ue)

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}PCEF{% endblock %}
+{% block title %}PCC Demo Introduction{% endblock %}
 {% block content %}
 
 	<div class="page-header">
@@ -8,18 +8,36 @@
 	<p>The PCC Demo is built around several Use Cases that show the capabilities of the Digital Route PCRF solution.</p>
 	<p>The user interface is organized in several screens, each displaying one of the entities or entity category involved in the demo.</p>
 	<h4>UE</h4>
-	<p>The <a href="/ue">UE</a> menu gives access to all the simulated user terminals. Each terminal is by default linked to a certain use case, but any terminal can be used for any case. The terminal <a href="/ue/4260005">4620005</a> is simulated as being registered on a different gateway (PCEF) which will be used to show the last two use cases.</p>
+	<p>The <a href="/ue">UE</a> menu gives access to all the simulated user terminals. Each terminal is by default linked to a certain use case, but any terminal can be used for any case. The terminal <a href="/ue/462005">462005</a> is simulated as being registered on a different gateway (PCEF) which will be used to show the last two use cases.</p>
 	<p>From the UE page it is possible to directly create a new session (that is, simulating that the terminal is attached to the network using an IP-CAN), or to access the UE detials. In the UE details window it is possible to see all active sessions as registered by the PCEF, and the status of the buckets associated to the UE, fetched from the PCRF/Service Control</p>
 	<h4>PCEF</h4>
 	<p>The demo consists of 2 PCEFs. By clicking on a PCEF a detail screen showing the PCEF's status is shown, that is the list of active sessions, and the set of Static Rules that are configured on the PCEF and that can be activated/deactivated by the PCRF.</p>
 	<h4>BDH/PCRF</h4>
-	The BDH (Bucket Data Holder) menu is a view into the status of the PCRF. The same information cane be obtained by accessing the <a href="{{mzIP}}:9000/mz">Service Control UI</a>. All buckets currently active are listed, and by selecting any of the buckets it is possible to 
+	The BDH (Bucket Data Holder) menu is a view into the status of the PCRF. The same information cane be obtained by accessing the <a href="{{mzIP}}:9000/mz">Service Control UI</a>. All buckets currently active are listed, together with the associated products and counters. Removing a bucket data holder will remove all subscriptions for the given user. 
 	<div class="page-header">
 	<h2>Use Cases</h2>
 	</div>
-	<div class="page-header">
-	<h3>Bucket limit</h2>
-	</div>
-	
+	<h3>1. Data allowance</h2>
+	<p>In this use case we want to show the basic functionality of the PCRF. The default user for this UC is <a href="/ue/460001">460001</a>.</p> 
+	<p>The user buys the default packet, wich allows 500kB of data during a 1 month period. Bucket is reset at every beginning of month. When the 500kB of data have been reached, the PCRF will activate the <a href="/pcef/1/rule/Throttle">Throttle</a> rule, which reduces the maximum bandwith.</p>
+	<h3>2. Coupon</h2>
+	<p>In this use case we want to show a user having reached its monthly data plan quota, wanting to temporarily enable full bandwidth for a limited period of time. The default user for this UC is <a href="/ue/460001">460001</a>.</p> 
+	<p>The user, which has reached its monthly data plan quota, buys the Turbo Coupon, wich allows unlimited data at full speed for a limited period of time (1 minute in the demo context). This is a 1 time bucket. After having purchased the coupon the PCRF immediately enables a new <a href="/rules/Turbo">Turbo</a> rule for the user and creates a new bucket to count the usage during the coupon validity period. When the coupon time expires, the <a href="/pcef/1/rule/Turbo">Turbo</a> rule is removed and the <a href="/pcef/1/rules/Throttle">Throttle</a> rule is enforced anew.</p>
+	<h3>3. Family plan</h2>
+	<p>In this use case we want to show the use of a family plan implemented via a bucket group. Two members of a family purchase a faimly plan which implements policing at both user level and group (family) level. The default users for this UC are <a href="/ue/460002">460002</a> and <a href="/ue/460003">460003</a>.</p> 
+	<p>Upon purchasing the family package for both users, each one is configured with a 500KB data allowance and a shared 1MB allowance. Data consumption from each user eats the user allowance and the family allowance. In this use case, when the user allowance is being reached, a <a href="/pcef/1/rule/Throttle">Throttle</a> rule is activated for the user. The other user is not affected. When the total data consumption of both users reaches the family allowance, a new <a href="/pcef/1/rule/Throttle_Group">Throttle Group</a> rule is activated for all family plan members.</p>
+	<h3>4. Service differentiation</h3>
+	<p>In this use case we show how the PCRF implements service differention by using different monitoring keys linked to different products. The default user for this UC is <a href="/ue/460004">460004</a>.</p>
+	<p>The user purchases a normal plan, where Data and Youtube traffic are monitored separately. The PCEF, with possibly the help of a <a href="http://en.wikipedia.org/wiki/Deep_packet_inspection">DPI</a> solution, reports the data usage separately for 2 monitoring keys, DATA and YOUTUBE. All DATA usage is counted against the 500KB data allowance, while the YOUTUBE data is unlimited.</p>
+	<h3>5. Sport Event offer</h3>
+	<p>In this use case we show how easy one can implement new offers via the Service Control UI. The default user for this UC is <a href="/ue/460001">460001</a>.</p>
+	<p>The operator wants to launch a new time limited offer in the occasion of some sport event. The operator creates a new <a href="{{mzIP}}:9000/mz/#/service-control/capacities">Capacity</a>, <a href="{{mzIP}}:9000/mz/#/service-control/periods">Periods</a>, <a href="{{mzIP}}:9000/mz/#/service-control/products">Products</a>.</p>
+	<p>Product: Sport VOD </p>
+	<p>Duration: 1 month</p>
+	<p>Capacity: unlimited</p>
+	<p>Media/Rating key: only traffic to sport channel, streaming - other data goes to whichever other subscription the user has</p>
+	<p>Priority: 50</p>
+	<p>Stop fallthrough: true</p>
+	<p>Creating a session for a user, one can see the new product being provisioned.</p>
 	
 {% endblock %}

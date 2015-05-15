@@ -1,22 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Bucket Data Holder{% endblock %}
+{% block title %}Session{% endblock %}
 {% block head %}
 {{ super() }}
-<script>
-function deleteSession(id) {
-	var xmlhttp;
-	xmlhttp = new XMLHttpRequest();
-	xmlhttp.open("DELETE", "/pcef/sessions/"+id, false);
-	xmlhttp.send();
-}
-</script>
 {% include "livechart.js" %}
 {% endblock %}
 {% block content %}
 
   
-	      
-	<h2>Session</h2>     
+<div class="container">	      
+	<h3>Session</h3>     
 	<form action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" method="post">   
 	<table class="table">    
 		<tr>
@@ -49,6 +41,7 @@ function deleteSession(id) {
 		</td>
 		</tr>
 	</table>
+	</div>
 	<div class="row well hidden">
 	{% include "livechart_snippet.html" %}
 	</div>
@@ -96,7 +89,7 @@ function deleteSession(id) {
 						<th>Counters</th>
 					</tr>
 					{% for bucket in buckets %}
-					<tr>
+					<tr {% if bucket.stopTime != None and unicodeToDatetime(bucket.stopTime) < date_now() %} style="color: #999999" {% endif %}>
 						<td>{{bucket.id}}</td>
 						<td>{{bucket.name}}</td>
 						<td>{{bucket.startTime}}</td>
@@ -123,7 +116,9 @@ function deleteSession(id) {
   	</div>
 </div>
 	<div style="padding-top:20px;">
-	<button onclick='deleteSession("{{session.sessionId}}");' type="button" class="btn btn-danger">Terminate session</button>
+	<form action="/pcef/{{pcef.id}}/sessions/delete/{{session.sessionId}}" method="POST">
+	<input type="submit" class="btn btn-danger" value="Terminate session">
+	</form>
 	</div>
 
 

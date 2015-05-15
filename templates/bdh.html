@@ -13,7 +13,7 @@
 	</tr>
 	{% for identityid in buckets.keys() %}
 		{% for bucket in buckets[identityid] %}
-		<tr >
+		<tr {% if bucket.stopTime != None and unicodeToDatetime(bucket.stopTime) < date_now() %} style="color: #999999" {% endif %}>
 			{% if loop.first %}
 			<td style="vertical-align:middle;" rowspan="{{ buckets[identityid]|count }}">
 				<a href="/ue/{{identityid}}">{{identityid}}</a>

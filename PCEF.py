@@ -65,7 +65,7 @@ class PCEF:
 
 	def terminateUESession(self,sessionid):
 		
-		session = sessions[sessionid]
+		session = self.sessions[sessionid]
 		identity = session.identity
 		#return "Deleted"
 		#Update the usage for each key
@@ -92,7 +92,7 @@ class PCEF:
 		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 			session_id = ccr_ans["Session_Id"]
 			
-			self.users[identity].sessions.pop(users[identity].sessions.index(session))
+			self.users[identity].sessions.pop(self.users[identity].sessions.index(session))
 			self.sessions.pop(sessionid)
 
 			json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
@@ -100,8 +100,8 @@ class PCEF:
 
 			checkUsageMonitoringInfo(ccr_ans, session)
 			#checkChargingRuleName(ccr_ans, session)
-			return True
-		return False
+
+		return ccr_ans["Result_Code"]
 
 	def reportSessionUsage(self, sessionid, request):
 		session = self.sessions[sessionid]
