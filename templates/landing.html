@@ -39,5 +39,15 @@
 	<p>Priority: 50</p>
 	<p>Stop fallthrough: true</p>
 	<p>Creating a session for a user, one can see the new product being provisioned.</p>
+
+	<h3>New PCEF with additional AVPs</h3>
+	<p>In this use case we show how simple is to modify the PCRF to consider new AVPs. </p>
+	<p>A new PCEF is installed in the network, and provided an additional fictious AVP in the Diameter request, Home-Location-Flag (code=800, vendor code=9008). This additional AVP indicates if the subscriber equipment is located is his home zone. 
+	We show that initially this AVP is not recognized by the PCRF, and by simply changing the Diameter stack configuration of the PCRF we can make it aware of it and able to decode it.</p>
+	<p>In the next use case we will demonstrate how to modify the PCRF/Service control logic in order to enable the creation of a new product</p>
+
+	<h3>Unlimited at Home product</h3>
+	<p>The new AVP provided by the new PCEF installed in the network allow us to create a new product called Unlimited at Home: by buying this product, the subscriber can have unlimited data traffic while staying in his home location. </p>
+	<p>The use case shows how simple it is to enable such feature, resulting in a really short TTM.</p>
 	
 {% endblock %}
