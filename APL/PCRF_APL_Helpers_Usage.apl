@@ -252,11 +252,7 @@ void grantQuotaGx(rc rc) {
         int j = 0;
         while (j < listSize(rc.ccr.umi)) {
             umi umi = listGet(rc.ccr.umi, j);
-            // USE CASE 5
-            // Get the Home-Location-Flag from the CCR
-            int isAtHome = rc.ccr.Home_Location_Flag;
-            // END CASE 5
-
+            
             // Check if Monitoring-Key is available in buckets list
             int k = 0;
             while (k < listSize(bucketsAll)) {
@@ -264,42 +260,14 @@ void grantQuotaGx(rc rc) {
                 if (umi.monitoringKey == item.monitoringKey && isAtHome == item.isAtHome) {
                     listAdd(buckets, item);
                     debug("grantQuotaGx() for CCR-U Monitoring-Key [" + umi.monitoringKey + "] for bucket ["
-                        + item.bucketId + "] and subscriber [" + item.subscriberKey + "]");
-                    debug("Home Location"+ item.isAtHome);
+                        + item.bucketId + "] and subscriber [" + item.subscriberKey + "]");                
                 }
                 k = k + 1;
             }
             j = j + 1;
         }
 
-        // USE CASE 5
-        if (listSize(buckets)<1) {
-        // Did not find a matching bucket to the Home-Location-Flag, checks all buckets based on monitoring key only
-            j = 0;
-            while (j < listSize(rc.ccr.umi)) {
-                umi umi = listGet(rc.ccr.umi, j);
-                // USE CASE 5
-                // Get the Home-Location-Flag from the CCR
-                int isAtHome = rc.ccr.Home_Location_Flag;
-                // END CASE 5
-    
-                // Check if Monitoring-Key is available in buckets list
-                int k = 0;
-                while (k < listSize(bucketsAll)) {
-                    bucketMapping item = listGet(bucketsAll, k);
-                    if (umi.monitoringKey == item.monitoringKey) {
-                        listAdd(buckets, item);
-                        debug("grantQuotaGx() for CCR-U Monitoring-Key [" + umi.monitoringKey + "] for bucket ["
-                            + item.bucketId + "] and subscriber [" + item.subscriberKey + "]");
-                        debug("Home Location"+ item.isAtHome);
-                    }
-                    k = k + 1;
-                }
-                j = j + 1;
-            }
-        }
         
-        // END USE CASE 5
     }
 
     // Bucket mapping is missing
@@ -448,15 +416,6 @@ list<bucketMapping> getAllBuckets(rc rc) {
             
             // Monitoring-Key
             string key = listGet(pm.Arguments, 0);
-            
-            // USE CASE 5 Code
-            int atHome = 0;
-            if (listSize(pm.Arguments)>1) {
-                //There is a second argument, Is At Home
-               strToInt(atHome,listGet(pm.Arguments, 1), dec);
-            }
-            debug("isAtHome:" + atHome);
-            // End of USE CASE 5 code
             
             // Find products from targets list
             int j = 0;
