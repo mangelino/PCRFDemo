@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Protocol messages{% endblock %}
+{% block head %}
+{{ super() }}
+<script src='//coffeescript.org/extras/coffee-script.js'></script>
+<script src='//jumly.tmtk.net/public/jumly.min.js'></script>
+{% endblock %}
+{% block content %}
+
+	    <script type="text/jumly+sequence">
+	    {{ jumly|safe }}
+	    </script>
+			
+					
+{% endblock %}

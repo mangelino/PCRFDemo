@@ -44,10 +44,22 @@
 	<p>In this use case we show how simple is to modify the PCRF to consider new AVPs. </p>
 	<p>A new PCEF is installed in the network, and provided an additional fictious AVP in the Diameter request, Home-Location-Flag (code=800, vendor code=9008). This additional AVP indicates if the subscriber equipment is located is his home zone. 
 	We show that initially this AVP is not recognized by the PCRF, and by simply changing the Diameter stack configuration of the PCRF we can make it aware of it and able to decode it.</p>
+	<p>Enable debug view of the events on the Gx stack on the Policy_Template workflow, report some usage and see that in the debug window a message is printed as the AVP in not recognized</p>
+	<p>Demonstrate that adding the new AVP is simple</p>
+	<ul>
+	<li>Add the new AVP to the Diameter configuration</li>
+	<li>Add the AVP to the CCR message definition</li>
+	<li>Modify the PCRF_APL_Helpers_Gx_Diameter APL code to populate the internal CCR structure with the value of the new AVP</li>
+	</ul>
+
 	<p>In the next use case we will demonstrate how to modify the PCRF/Service control logic in order to enable the creation of a new product</p>
 
 	<h3>Unlimited at Home product</h3>
 	<p>The new AVP provided by the new PCEF installed in the network allow us to create a new product called Unlimited at Home: by buying this product, the subscriber can have unlimited data traffic while staying in his home location. </p>
 	<p>The use case shows how simple it is to enable such feature, resulting in a really short TTM.</p>
-	
+	<p>In the demo directory there are 2 versions of 2 files, PCRF_APL_Helpers_Gx_Diameter and PCRF_APL_Helpers_Usage. A version is called _original, the other version is called _modified.</p>
+	<p>You can use a "diff" program to show the differences between the two files and then copy-paste the content of the modified files in the corresponding APL Code element. Save the modified version and add a comment, such as "Unlimited at home modifications"</p>
+	<p>Restart the Policy_Template workflow and then, from the simulator, buy a subscription for the Unlimited at Home package. Create a new session of the user <a href="/ue/462005">462005</a> or reuse an existing session if it exists. You can notice that a new bucket has been added, called HOME. Refresh the session by clicking "Report usage" oncr without any usage, and then start reporting usage: it will be reported in the HOME bucket. </p>
+	<p>It is also possible to simulate a change of location for the user by selecting the "tree" simbol in the Location row. Refresh the session by Reporting empty usage, and then start reporting usage: it will be accounted in the DATA_500KB bucket.</p>
+	<p><strong>Note:</strong> refreshing is done in order to show that the reported usage is immediately accounted for by the "correct" bucket. The PCRF is configured to account the usage on the bucket for which the usage was granted, and if the refresh is not performed, the first usage reported after a change of configuration would be reported on the "old" bucket. In reality the PCEF is receiving a RAR message at each configuration change, and that could be used by the PCEF to terminate the current sessions, and reopen new ones.</p>
 {% endblock %}

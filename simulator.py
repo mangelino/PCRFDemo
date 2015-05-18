@@ -279,6 +279,27 @@ def pcef_report_session_usage(sessionid = None, pcefid=None):
 	
 	return render_template("session.html", session = session, buckets = buckets, pcef = pcefs[pcefid])
 
+@app.route("/pcef/<int:pcefid>/messages", methods=["GET"])
+def pcef_messages(pcefid = None):
+	if not pcefid in pcefs:
+		abort(404)
+	pcef = pcefs[pcefid]
+	jumly = getJumlyScript(pcef.messages)
+	return render_template("messages.html", jumly = jumly)
+
+def getJumlyScript(messages):
+	script = ""
+
+	for m in messages:
+		if m.type == "A":
+			script += ', -> @reply "{0}{1}({2})"'.format(m.name, m.type, m.subtype)
+			current_from = None
+			current_to = None
+		else:
+			script += '\n@found "{0}", -> @message "{1}{2}({3})", "{4}"'.format(m.fr, m.name, m.type, m.subtype, m.to)
+	return script
+
+
 def notifyRules(rules):
 	for k in rules.keys():
 			for r in rules[k]:

@@ -2,6 +2,10 @@ from PCC import Rule, Session, MonitoringInfo, RulesActions
 import PCC
 import requests
 import json
+from collections import namedtuple
+from datetime import datetime
+
+Message = namedtuple("Message", "name type subtype fr to time content")
 
 class PCEF:
 	def __init__(self, pcefid, name, ip, port):
@@ -13,6 +17,7 @@ class PCEF:
 		self.users = {}
 		self.sessions = {}
 		self.rules = {}
+		self.messages = []
 		# For the moment we leave the rules hardcoded
 		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 50000)
 		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 2000)
@@ -45,23 +50,32 @@ class PCEF:
 		simulator_ans = r.content
 		ccr_cycle_list = json.loads(simulator_ans)
 		session = None
-		ccr_ans = ccr_cycle_list[0]["Answer"]
-		rules = RulesActions()
-		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
-			session_id = ccr_ans["Session_Id"]
-			atHome = self.users[identity].isAtHome
-			session = Session(identity, session_id, {}, set(), atHome)
-			self.sessions[session_id] = session
-			self.users[identity].sessions.append(session)
-			print "Sessions:",self.users[identity].sessions
-			json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-			print "CCR Answer = ",json_pretty
-			
-			checkUsageMonitoringInfo(ccr_ans, session)
-			rules = checkChargingRuleName(ccr_ans)
-			updateSession(session, rules)
+		code = PCC.DIAMETER_SUCCESS
+		for ccr_cycle in ccr_cycle_list:
+			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
+				ccr_ans = ccr_cycle["Answer"]
+				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"],"PCEF", "PCRF", datetime.now(), ccr_cycle_list[0]["Request"]))
+				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans))
+				rules = RulesActions()
+				code = ccr_ans["Result_Code"]
+				if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
+					session_id = ccr_ans["Session_Id"]
+					atHome = self.users[identity].isAtHome
+					session = Session(identity, session_id, {}, set(), atHome)
+					self.sessions[session_id] = session
+					self.users[identity].sessions.append(session)
+					print "Sessions:",self.users[identity].sessions
+					json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+					print "CCR Answer = ",json_pretty
+					
+					checkUsageMonitoringInfo(ccr_ans, session)
+					rules = checkChargingRuleName(ccr_ans)
+					updateSession(session, rules)
+			else:
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_cycle_list[0]["Request"]))
+				
 
-		return (ccr_ans["Result_Code"], session, rules.asDict())
+		return (code, session, rules.asDict())
 
 	def terminateUESession(self,sessionid):
 		
@@ -86,22 +100,30 @@ class PCEF:
 		r = requests.get(self.simEndPoint(),params=simQuery)
 	 	simulator_ans = r.content
 		ccr_cycle_list = json.loads(simulator_ans)
-		
+		code = PCC.DIAMETER_SUCCESS		
+		for ccr_cycle in ccr_cycle_list:
+			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
+				ccr_ans = ccr_cycle["Answer"]
 
-		ccr_ans = ccr_cycle_list[0]["Answer"]
-		if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
-			session_id = ccr_ans["Session_Id"]
-			
-			self.users[identity].sessions.pop(self.users[identity].sessions.index(session))
-			self.sessions.pop(sessionid)
+				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"]))
+				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans))
+				code = ccr_ans["Result_Code"]
+				if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
+					session_id = ccr_ans["Session_Id"]
+					
+					self.users[identity].sessions.pop(self.users[identity].sessions.index(session))
+					self.sessions.pop(sessionid)
 
-			json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-			print "CCR_Answer=", json_pretty
+					json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
+					print "CCR_Answer=", json_pretty
 
-			checkUsageMonitoringInfo(ccr_ans, session)
-			#checkChargingRuleName(ccr_ans, session)
+					checkUsageMonitoringInfo(ccr_ans, session)
+					#checkChargingRuleName(ccr_ans, session)
+			else:
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"]))
+				
 
-		return ccr_ans["Result_Code"]
+		return code
 
 	def reportSessionUsage(self, sessionid, request):
 		session = self.sessions[sessionid]
@@ -149,7 +171,10 @@ class PCEF:
 		for ccr_cycle in ccr_cycle_list:
 
 			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
+
 				ccr_ans = ccr_cycle["Answer"]
+				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"]))
+				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_ans))
 				session_id = ccr_ans["Session_Id"]
 				
 				json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
@@ -162,6 +187,7 @@ class PCEF:
 			else:
 				# If the answer is nothing, then this is a RAR message, hence the info is in the request
 				ccr_req = ccr_cycle["Request"]
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"]))
 				session_id = ccr_req["Session_Id"]
 			
 				json_pretty = json.dumps(ccr_req, sort_keys = True, indent = 4, separators = (', ', ': '))
