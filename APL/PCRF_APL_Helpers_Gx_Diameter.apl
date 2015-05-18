@@ -55,7 +55,6 @@ boolean extractCCR(rc rc) {
     rc.ccr.CC_Request_Type = in.CC_Request_Type;
     rc.ccr.CC_Request_Number = in.CC_Request_Number;
     rc.ccr.Auth_Application_Id = in.Auth_Application_Id;
-    rc.ccr.Home_Location_Flag = in.Home_Location_Flag; // USE CASE 5 code
 
     // Internal CCA
     rc.cca = udrCreate(cca);
