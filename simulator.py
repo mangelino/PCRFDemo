@@ -407,4 +407,4 @@ PCC.loadDiameterErrors()
 if __name__ == "__main__":
 	app.secret_key = 'AhHKJyig781641hshkjh-=HA'
 	app.debug = True
-	app.run()
+	app.run(host="0.0.0.0")
