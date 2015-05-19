@@ -2,14 +2,188 @@
 {% block title %}Session{% endblock %}
 {% block head %}
 {{ super() }}
-{% include "livechart.js" %}
+<script type="text/javascript">
+	var intervalId;
+	var consChart;
+	var bwChart;
+	var consDps = [];
+	var bwDps = []; // dataPoints
+	var consumed = 0;
+	var tempConsumed = 0;
+	var MAXSTOP = 999999999;
+	var AVGBW = 500;
+	var THROTTLE = 999999999;	
+
+
+	window.onload = function() {
+		consChart = new CanvasJS.Chart("consumption",{
+			title :{
+				text: "Data consumption"
+			},			
+			data: [{
+				type: "line",
+				dataPoints: consDps 
+			}]
+		});
+
+		bwChart = new CanvasJS.Chart("bandwidth",{
+			title :{
+				text: "Bandwidth"
+			},			
+			data: [{
+				type: "line",
+				dataPoints: bwDps 
+			}]
+		});
+	}
+
+	var xVal = 0;
+	var yVal;
+	var stopX = MAXSTOP;	
+	var averageBw = 200;
+	var updateInterval = 20;
+	var dataLength = 500; // number of dataPoints visible at any point
+
+	function updateChart (count, bw) {
+		count = count || 1;
+		// count is number of times loop runs to generate random dataPoints.
+		var delta= Math.round(bw/5 + Math.random() *(-bw));
+		
+
+		for (var j = 0; j < count; j++) {	
+			yVal = bw +  delta;
+			//if (consumed > 500000) {
+				if (yVal > THROTTLE) {
+					yVal = THROTTLE;
+
+				}
+			// 	if (stopX == MAXSTOP) {
+			// 		stopX = xVal;
+			// 	}
+			// }
+			if (yVal<0) {
+					yVal = 0;
+				}
+			bwDps.push({
+				x: xVal,
+				y: yVal
+			});
+
+			consumed = consumed + yVal;
+			//tempConsumed = tempConsumed + yVal;
+			consDps.push({
+				x: xVal,
+				y: consumed
+			});
+
+			xVal++;
+			if (xVal-stopX > dataLength) {
+				clearInterval(intervalId);
+			}
+		};
+		if (bwDps.length > dataLength)
+		{
+			bwDps.shift();				
+		}
+
+		if (consDps.length > dataLength)
+		{
+			consDps.shift();				
+		}
+		consChart.render();
+		bwChart.render();
+
+		// if (tempConsumed > 4100) {
+		// 	//submitFormPredefined("Data",tempConsumed);
+		// 	tempConsumed = 0;
+		// }
+	};
+	
+
+	function start() {
+		stopX = MAXSTOP;
+		if (intervalId)
+			clearInterval(intervalId); 
+
+		// generates first set of dataPoints
+		updateChart(dataLength,0); 
+		//consumed = 0;
+
+		// update chart after specified time. 
+		intervalId = setInterval(function(){updateChart(1, AVGBW);}, updateInterval); 
+	}
+
+	function stop() {
+		// update chart after specified time. 
+		clearInterval(intervalId); 
+	}
+
+	function pause() {
+		if (intervalId) {
+			clearInterval(intervalId);
+			intervalId = null;
+		} else {
+			intervalId = setInterval(function(){updateChart(1, AVGBW);}, updateInterval);
+		}
+		
+	}
+
+	function submitFormPredefined(elem_id, bytes)
+	{
+		document.getElementById(elem_id).value = bytes; 
+		var postData = $("#sessionForm").serializeArray();
+    	var formURL = $("#sessionForm").attr("altaction");
+		$.ajax(
+			    {
+			        url : formURL,
+			        type: "POST",
+			        data : postData,
+			        success:function(data, textStatus, jqXHR) 
+			        {
+			        	var jsondata = JSON.parse(data);
+			            //alert(data);//data: return data from server
+			            for (var j = 0; j < jsondata.buckets.length; j++) {
+			            	$("#bucket_"+jsondata.buckets[j].id).html(getReadableFileSizeString(jsondata.buckets[j].counters.tot));
+			            }
+			            for (var minfo in jsondata.session.monitoringInfo) {
+			            	$("#mkey_"+minfo).html(getReadableFileSizeString(jsondata.session.monitoringInfo[minfo][3]));
+
+			            }
+			            var rules = jsondata.session.rules;
+			            for (var j=0; j<rules.length; j++) {
+			            	THROTTLE = Math.min(jsondata.pcef.rules[rules[j]][5], THROTTLE);
+			            }
+
+			        },
+			        error: function(jqXHR, textStatus, errorThrown) 
+			        {
+			            //if fails      
+			        }
+			    });
+		//document.getElementById(elem_id).value = bytes; 
+		//document.getElementById('sessionForm').submit();
+	}
+
+	function getReadableFileSizeString(fileSizeInBytes) {
+
+	    var i = -1;
+	    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+	    do {
+	        fileSizeInBytes = fileSizeInBytes / 1024;
+	        i++;
+	    } while (fileSizeInBytes > 1024);
+
+	    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
+	};
+	</script>
+	<script type="text/javascript" src="/assets/script/canvasjs.min.js"></script>
 {% endblock %}
 {% block content %}
 
   
 <div class="container">	      
 	<h3>Session</h3>     
-	<form action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" method="post">   
+	<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post">   
 	<table class="table">    
 		<tr>
 				<td>Session Id</td><td> {{session.sessionId}} </td>
@@ -42,20 +216,21 @@
 		</tr>
 	</table>
 	</div>
-	<div class="row well hidden">
+	<div class="row well">
 	{% include "livechart_snippet.html" %}
 	</div>
 	<div class="row well">
 
 	
 	<div class="col-md-10">
-		<table class="table">
+		<table class="table table-condensed">
 			<thead>
 				<tr>	
-					<th>Traffic type</th>
-					<th>Used</th> 
-					<th>Granted</th>
-					<th>New usage</th>
+					<th class="col-sm-1">Traffic type</th>
+					<th class="col-sm-1">Used</th> 
+					<th class="col-sm-1">Granted</th>
+					<th class="col-sm-1">New usage</th>
+					<th class="col-sm-2">Usage</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -63,8 +238,12 @@
 					<tr>	
 						<td> {{ minfo.key}} </td>
 						<td> {{ minfo.usage|filesizeformat}} </td>
-						<td> {{ minfo.gsu|filesizeformat}} </td> 
-						<td><input type="text" name="{{minfo.key}}"></td>
+						<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td> 
+						<td><input id="{{minfo.key}}" type="text" name="{{minfo.key}}"></td>
+						<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
+						<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
+						<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
+						<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
 					</tr>
 				{% endfor %}
 			</tbody>
@@ -72,8 +251,10 @@
 	</div>
 	<div class="col-md-2">
 		<input type="submit" class="btn btn-success" value="Report usage">
+		
 	</div>
 	</form>
+	
 </div>
 <div class="container">
 	<h3>Buckets</h3>
@@ -94,9 +275,8 @@
 						<td>{{bucket.name}}</td>
 						<td>{{bucket.startTime}}</td>
 						<td>{{bucket.stopTime}}</td>
-						<td>
-							
-						{{bucket.counters["tot"]|filesizeformat}}
+						<td><span id="bucket_{{bucket.id}}">		
+						{{bucket.counters["tot"]|filesizeformat}}</span>
 							<!--
 							<table class="table">  
 							{% for k,v in bucket.counters.iteritems() %}

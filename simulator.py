@@ -207,6 +207,18 @@ def monitor_ue_session(identity=None, sessionid = None):
 	buckets = getBuckets(identity)
 	return render_template("session.html", session = sessions[sessionid], buckets = buckets, pcef = pcef)
 
+@app.route("/ue/<identity>/session/json/<sessionid>", methods=['GET'])
+def monitor_ue_session_json(identity=None, sessionid = None):
+	if not identity in all_users:
+		abort(404)
+	pcef = all_users[identity].pcef
+	sessions = pcef.sessions
+	if not sessionid in sessions or sessions[sessionid].identity != identity:
+		abort(404)
+	buckets = getBuckets(identity)
+	session = sessions[sessionid]
+	return json.dumps(dict(session = dict(sessionid=session.sessionId,  monitoringInfo=session.monitoringInfo,rules=list(session.installedRules)), buckets = buckets, pcef = dict(id = pcef.id, rules = pcef.rules)))
+
 
 # PCEF
 
@@ -278,6 +290,23 @@ def pcef_report_session_usage(sessionid = None, pcefid=None):
 	buckets = getBuckets(session.identity)
 	
 	return render_template("session.html", session = session, buckets = buckets, pcef = pcefs[pcefid])
+
+@app.route("/pcef/<int:pcefid>/sessions/json/<sessionid>", methods = ["POST"])
+def pcef_report_session_usage_json(sessionid = None, pcefid=None):
+	if not sessionid in pcefs[pcefid].sessions:
+		abort(404)
+
+	res = pcefs[pcefid].reportSessionUsage(sessionid, request)
+	if (res[0] != PCC.DIAMETER_SUCCESS):
+		code = res[0]
+		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description)
+	else:
+		notifyRules(res[1])
+		#return flask.redirect("/pcef/"+str(pcefid)+"/sessions/"+sessionid)
+	session = pcefs[pcefid].sessions[sessionid]
+	buckets = getBuckets(session.identity)
+	pcef = pcefs[pcefid]
+	return json.dumps(dict(session = dict(sessionid=session.sessionId, monitoringInfo=session.monitoringInfo, rules=list(session.installedRules)), buckets = buckets, pcef = dict(id = pcef.id, rules = pcef.rules)))
 
 @app.route("/pcef/<int:pcefid>/messages", methods=["GET"])
 def pcef_messages(pcefid = None):

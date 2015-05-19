@@ -19,10 +19,10 @@ class PCEF:
 		self.rules = {}
 		self.messages = []
 		# For the moment we leave the rules hardcoded
-		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 50000)
-		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 2000)
-		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 50000)
-		self.rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 2000)
+		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 1000)
+		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 50)
+		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 1000)
+		self.rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 20)
 		self.rules["Youtube"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
 
 	def resetPCEF(self):

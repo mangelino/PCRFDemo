@@ -87,6 +87,7 @@
 		}
 		consChart.render();
 		bwChart.render();
+
 	};
 	
 
