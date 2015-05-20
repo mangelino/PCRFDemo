@@ -1,0 +1,54 @@
+<!doctype html>
+<html ng-app="sessionsApp">
+  <head>
+    <script src="assets/script/angular.min.js"></script>
+    <script src="sessions.js"></script>
+
+    <link rel="stylesheet" href="/assets/bootstrap-3.3.4/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="/assets/bootstrap-3.3.4/css/bootstrap-theme.min.css">
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/assets/script/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="/assets/bootstrap-3.3.4/js/bootstrap.min.js"></script>
+
+      </head>
+  <body>
+<div ng-controller="SessionController as session">
+<table class="table">    
+    <tr>
+        <td>Session Id</td><td> {{session.session.sessionId}} </td>
+    </tr>
+    <tr>  
+      <td>UE Identity</td><td><a href="/ue/{{session.session.identity}}"> {{session.session.identity}} </a></td> 
+    </tr>
+    <tr>
+    <td>Location</td><td>
+      <label class="radio-inline">
+  <input type="radio" name="isAtHome" id="isAtHome_False" value="0" {% if not session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-tree-deciduous"></span>
+</label>
+<label class="radio-inline">
+  <input type="radio" name="isAtHome" id="isAtHome_True" value="1" {% if session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-home"></span>
+</label>
+</td>
+<!--
+      <td>Location</td><td>{% if session.atHomeLocation %}At Home<span class="glyphicon glyphicon-home"></span>{% else %}Not at Home<span class="glyphicon glyphicon-tree-deciduous"></span>{% endif %}</td> -->
+    </tr>
+    <tr>
+    <td>Rules</td>
+    <td>
+    <h4>
+    <div ng-repeat="chargingRule in session.session.installedRules">
+    <a href="/pcef/rule/{{chargingRule}}" >
+    <span class="label label-primary">{{chargingRule}}</span></a>
+    </div>
+    </h4>
+    </td>
+    </tr>
+  </table>
+
+</div>
+
+  </body>
+</html>

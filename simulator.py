@@ -62,7 +62,7 @@ def usecase_provisioning(id = None):
 	else:
 		flask.flash("Error"+str(res))
 
-	return flask.redirect("/usecases")
+	return flask.redirect(request.referrer)
 
 def provisionCase5(form):
 	imsi = 460001
@@ -318,8 +318,11 @@ def pcef_messages(pcefid = None):
 
 def getJumlyScript(messages):
 	script = ""
-
+	count = 0
 	for m in messages:
+		count+=1
+		if count > 50: 
+			return script
 		if m.type == "A":
 			script += ', -> @reply "{0}{1}({2})"'.format(m.name, m.type, m.subtype)
 			current_from = None
@@ -330,6 +333,7 @@ def getJumlyScript(messages):
 
 
 def notifyRules(rules):
+	return #this is to avoid the flashing of rules with the new java script UI
 	for k in rules.keys():
 			for r in rules[k]:
 				flask.flash("Rules to "+k+" "+r)
@@ -392,16 +396,33 @@ def reset_bdh(identity=None):
 def my_utilities():
 
 	def date_now():
-		return datetime.datetime.now()
+		return datetime.datetime.now()-datetime.timedelta(minutes=1)
 
 	def unicodeToDatetime(unicodeDate):
 		return parser.parse(unicodeDate).replace(tzinfo=None)
 
-	return dict(date_now=date_now, unicodeToDatetime=unicodeToDatetime)
+	def daysLeft(endUnicode):
+		if (endUnicode != None):
+			enddate = unicodeToDatetime(endUnicode)
+			diff = enddate -datetime.datetime.now()
+			return "{0} days".format(diff.days)
+		else:
+			return "Not activated"
+
+	return dict(date_now=date_now, unicodeToDatetime=unicodeToDatetime, daysLeft=daysLeft)
 
 
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):
 		return value.strftime(format)
+
+
+#### Starmobile
+
+@app.route("/starmobile/<identity>", methods=["GET"])
+def starmobile(identity=None):
+	buckets = getBuckets(identity)
+	return render_template("starmobile_1.html", ue = all_users[identity], buckets = buckets);
+
 
 #
 # Init

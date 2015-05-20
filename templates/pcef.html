@@ -20,7 +20,9 @@
 		</td>
 		<td>
 		{% for b in buckets[u.identity] %}
+		{% if b.stopTime == None or unicodeToDatetime(b.stopTime) > date_now() %} 
 		<span class="label label-primary">{{b.name}}</span>
+		{% endif %}
 		{% endfor %}
 		</td>
 		</tr>

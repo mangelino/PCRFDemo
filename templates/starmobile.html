@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+    {% block head %}
+        <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="/assets/bootstrap-3.3.4/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="/assets/bootstrap-3.3.4/css/bootstrap-theme.min.css">
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/assets/script/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="/assets/bootstrap-3.3.4/js/bootstrap.min.js"></script>
+    <link href="/assets/styles/sticky-footer-navbar.css" rel="stylesheet">
+    <title>Starmobile</title>
+    {% endblock %}
+    <link rel="stylesheet" href="/assets/styles/styles_custom.css">
+   
+</head>
+<body role="document">
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container" style="width:1000px; padding-left:0px;">
+        <div class="navbar-header">
+          <div class="logo"><img src="/assets/images/logo.png" style="width: 250px" alt="Star Mobile"/></div>
+        </div>
+
+        <div id="navbar" class="collapse navbar-collapse topnav">
+          <ul class="nav navbar-nav">
+            <li><a href="#">About us</a></li>
+            <li><a href="#">Sign up</a></li>
+            <li><a href="#">My Star Pages</a></li>
+            <li><a href="#">My Overview</a></li>
+            
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <li role="presentation" class="active"><a style="
+    background: rgb(40, 171, 226);
+    border-radius: 10px;" href="#">{{userid}}<span class="badge">3</span></li>
+                        </li>
+                            </ul>
+                        </li>
+                    </ul>
+        </div>
+       
+      </div>
+    </nav>
+    
+   
+    <div id="container" role="main" style="padding-top: 65px;">
+       <div class="left-sidebar">
+       		<div class="well">
+                <div class="page-header">
+                    <h1>My Overview</h1>
+                </div>
+            </div>
+        </div>        
+        
+        <div class="right-sidebar">
+    		<h2>Add Packages</h2>
+     		<ul class="list-group">
+            	<li class="list-group-item"><a href="/usecase/1"><img src="http://www.windsordaycarecentre.ca/wp-content/uploads/2013/04/money-bucket-icon.png" width="40px" style="padding-right: 20px;"/>Monthly Bucket 500MB</a></li>
+                <li class="list-group-item"><a href="/usecase/2"><img src="http://www.getyp.com/wp-content/uploads/2014/12/icon-coupon-150x150.png" width="40px" style="padding-right: 20px;"/>Boost Coupon 1 min</a></li>
+                <li class="list-group-item"><a href="/usecase/3"><img src="http://www.muse.it/it/visita/servizi-museo/Family/PublishingImages/famiglia.png" width="40px" style="padding-right: 20px;"/>Family 1GB/500MB</a></li>
+                <li class="list-group-item"><a href="/usecase/4"><img src="http://wagner.wpengine.netdna-cdn.com/library/files/2015/03/2000px-Youtube_icon.png" width="40px" style="padding-right: 20px;"/>YouTube Bucket</a></li>
+            </ul>
+   		</div>
+    	
+        <div class="row">
+    		<center><img src="/assets/images/reklam.png" style="width: 800px;" /></center>
+            <center><img src="/assets/images/sports.png" style="width: 800px; padding-top: 20px;"/></center>
+  	 	</div>        
+    </div>
+    
+    <div id="page-footer">        
+    &copy; Copyright 2015 by <a href="http://www.digitalroute.com/">Star Mobile</a>
+    </div>
+
+</body>
+</html>

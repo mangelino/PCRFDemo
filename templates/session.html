@@ -2,6 +2,7 @@
 {% block title %}Session{% endblock %}
 {% block head %}
 {{ super() }}
+
 <script type="text/javascript">
 	var intervalId;
 	var consChart;
@@ -14,6 +15,7 @@
 	var AVGBW = 500;
 	var THROTTLE = 999999999;	
 
+	
 
 	window.onload = function() {
 		consChart = new CanvasJS.Chart("consumption",{
@@ -70,7 +72,7 @@
 			});
 
 			consumed = consumed + yVal;
-			//tempConsumed = tempConsumed + yVal;
+			tempConsumed = tempConsumed + yVal;
 			consDps.push({
 				x: xVal,
 				y: consumed
@@ -93,15 +95,16 @@
 		consChart.render();
 		bwChart.render();
 
-		// if (tempConsumed > 4100) {
-		// 	//submitFormPredefined("Data",tempConsumed);
-		// 	tempConsumed = 0;
-		// }
+		if (tempConsumed > 4100) {
+			submitFormPredefined("Data",tempConsumed);
+			tempConsumed = 0;
+		}
 	};
 	
 
 	function start() {
 		stopX = MAXSTOP;
+		$("#usageWell").hide();
 		if (intervalId)
 			clearInterval(intervalId); 
 
@@ -116,6 +119,7 @@
 	function stop() {
 		// update chart after specified time. 
 		clearInterval(intervalId); 
+		$("#usageWell").show();
 	}
 
 	function pause() {
@@ -142,17 +146,25 @@
 			        {
 			        	var jsondata = JSON.parse(data);
 			            //alert(data);//data: return data from server
+			            bucketRows = "";
 			            for (var j = 0; j < jsondata.buckets.length; j++) {
-			            	$("#bucket_"+jsondata.buckets[j].id).html(getReadableFileSizeString(jsondata.buckets[j].counters.tot));
+			            	//$("#bucket_"+jsondata.buckets[j].id).html(getReadableFileSizeString(jsondata.buckets[j].counters.tot));
+			            	bucketRows += generateBucketRow(jsondata.buckets[j]);
+
 			            }
+			            $("#bucketsTable tbody").html(bucketRows);
 			            for (var minfo in jsondata.session.monitoringInfo) {
 			            	$("#mkey_"+minfo).html(getReadableFileSizeString(jsondata.session.monitoringInfo[minfo][3]));
 
 			            }
 			            var rules = jsondata.session.rules;
+			            rulesHtml = "";
+			            THROTTLE = 999999999;
 			            for (var j=0; j<rules.length; j++) {
 			            	THROTTLE = Math.min(jsondata.pcef.rules[rules[j]][5], THROTTLE);
+			            	rulesHtml += '<span class="label label-primary">'+rules[j]+'</span>'
 			            }
+			            $("#rules").html(rulesHtml);
 
 			        },
 			        error: function(jqXHR, textStatus, errorThrown) 
@@ -162,6 +174,31 @@
 			    });
 		//document.getElementById(elem_id).value = bytes; 
 		//document.getElementById('sessionForm').submit();
+	}
+
+	function generateBucketRow(bucket)
+	{
+		c = "";
+		if (checkValidity(bucket.stopTime)) {
+			c += '<tr>\n';
+			c += "<td>"+bucket.id+"</td>";
+			c += "<td>"+bucket.name+"</td>";
+			c += "<td>"+bucket.startTime+"</td>";
+			c += "<td>"+bucket.stopTime+"</td>";
+			c += "<td>"+getReadableFileSizeString(bucket.counters.tot)+"</td>";
+			c += "</tr>";
+		}
+		return c;
+	}
+
+	function checkValidity(time)
+	{
+		var now = new Date();
+		if (Date.parse(time)<now.setSeconds(now.getSeconds()-60)) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 	function getReadableFileSizeString(fileSizeInBytes) {
@@ -182,86 +219,70 @@
 
   
 <div class="container">	      
-	<h3>Session</h3>     
-	<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post">   
-	<table class="table">    
-		<tr>
-				<td>Session Id</td><td> {{session.sessionId}} </td>
-		</tr>
-		<tr>	
-			<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
-		</tr>
-		<tr>
-		<td>Location</td><td>
-			<label class="radio-inline">
-  <input type="radio" name="isAtHome" id="isAtHome_False" value="0" {% if not session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-tree-deciduous"></span>
-</label>
-<label class="radio-inline">
-  <input type="radio" name="isAtHome" id="isAtHome_True" value="1" {% if session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-home"></span>
-</label>
-</td>
-<!--
-			<td>Location</td><td>{% if session.atHomeLocation %}At Home<span class="glyphicon glyphicon-home"></span>{% else %}Not at Home<span class="glyphicon glyphicon-tree-deciduous"></span>{% endif %}</td> -->
-		</tr>
-		<tr>
-		<td>Rules</td>
-		<td>
-		<h4>
-		{% for chargingRule in session.installedRules %}
-		<a href="/pcef/rule/{{chargingRule}}" >
-		<span class="label label-primary">{{chargingRule}}</span></a>
-		{% endfor %}
-		</h4>
-		</td>
-		</tr>
-	</table>
+	<div class="row">
+		<div class="row">
+			<button onclick="start();" value="Start" class="btn btn-sm btn-default">Start</button>
+			<button onclick="stop();" value="Stop" class="btn btn-sm btn-default">Stop</button>
+			<button onclick="pause();" value="Pause" class="btn btn-sm btn-default">Pause/Play</button>
+		</div>
+		<div class="row" style="padding: 20px;">
+			<div class="col-md-4" id="consumption" style="height: 200px;">
+			</div>
+			<div class="col-md-4 col-md-offset-2" id="bandwidth" style="height: 200px;">
+		</div>
+		</div>
 	</div>
-	<div class="row well">
-	{% include "livechart_snippet.html" %}
+	
+
+
+<!-- <div>
+<button class="btn btn-sm btn-default" onclick='$("#vid1").play()'>Play</button>
+	 <video id="vid1" width="640" height="360" controls>
+       <source src="/assets/video/big_buck_bunny_1080p_h264.mov"/> 
+       Your browser does not support the video tag.
+   </video>
+</div> -->
+<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post"> 
+	<div id="usageWell" class="row well">
+		<div class="col-md-10">
+			<table class="table table-condensed">
+				<thead>
+					<tr>	
+						<th class="col-sm-1">Traffic type</th>
+						<th class="col-sm-1">Used</th> 
+						<th class="col-sm-1">Granted</th>
+						<th class="col-sm-1">New usage</th>
+						<th class="col-sm-2">Usage</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for minfo in session.monitoringInfo.values() %}				
+						<tr>	
+							<td> {{ minfo.key}} </td>
+							<td> {{ minfo.usage|filesizeformat}} </td>
+							<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td> 
+							<td><input id="{{minfo.key}}" type="text" name="{{minfo.key}}"></td>
+							<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
+							<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
+							<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
+							<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<div class="col-md-2">
+			<input type="submit" class="btn btn-success" value="Report usage">		
+		</div>
 	</div>
-	<div class="row well">
+
 
 	
-	<div class="col-md-10">
-		<table class="table table-condensed">
-			<thead>
-				<tr>	
-					<th class="col-sm-1">Traffic type</th>
-					<th class="col-sm-1">Used</th> 
-					<th class="col-sm-1">Granted</th>
-					<th class="col-sm-1">New usage</th>
-					<th class="col-sm-2">Usage</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for minfo in session.monitoringInfo.values() %}				
-					<tr>	
-						<td> {{ minfo.key}} </td>
-						<td> {{ minfo.usage|filesizeformat}} </td>
-						<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td> 
-						<td><input id="{{minfo.key}}" type="text" name="{{minfo.key}}"></td>
-						<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
-						<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
-						<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
-						<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	</div>
-	<div class="col-md-2">
-		<input type="submit" class="btn btn-success" value="Report usage">
-		
-	</div>
-	</form>
-	
-</div>
-<div class="container">
-	<h3>Buckets</h3>
 	<div class="row">
 		<div class="col-md-8">
+		<h3>Buckets</h3>
 			<div id="demo" class="collapse in">
-				<table class="table">  
+				<table id="bucketsTable" class="table">  
 					<tr>
 						<th>ID</th>
 						<th>Product</th>
@@ -270,7 +291,8 @@
 						<th>Counters</th>
 					</tr>
 					{% for bucket in buckets %}
-					<tr {% if bucket.stopTime != None and unicodeToDatetime(bucket.stopTime) < date_now() %} style="color: #999999" {% endif %}>
+					{% if bucket.stopTime == None or unicodeToDatetime(bucket.stopTime) > date_now() %}
+					<tr>
 						<td>{{bucket.id}}</td>
 						<td>{{bucket.name}}</td>
 						<td>{{bucket.startTime}}</td>
@@ -289,15 +311,53 @@
 			
 						</td>
 					</tr>
+					{% endif %}
 					{% endfor %}
 				</table>
 			</div>
 		</div>
-  	</div>
-</div>
+  	
+  	<div class="col-md-4">
+	<h3>Session</h3>     
+		<table class="table">   
+			<tr>
+				<td>Rules</td>
+				<td>
+					<h4 id="rules">
+					{% for chargingRule in session.installedRules %}
+					<a href="/pcef/rule/{{chargingRule}}">
+					<span class="label label-primary">{{chargingRule}}</span></a>
+					{% endfor %}
+					</h4>
+				</td>
+			</tr> 
+			<!-- <tr>
+				<td>Session Id</td><td> {{session.sessionId}} </td>
+			</tr> -->
+			<tr>	
+				<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
+			</tr>
+			<tr>
+				<td>Location</td>
+				<td>
+					<label class="radio-inline">
+					<input type="radio" name="isAtHome" id="isAtHome_False" value="0" {% if not session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-tree-deciduous"></span>
+					</label>
+					<label class="radio-inline">
+					  <input type="radio" name="isAtHome" id="isAtHome_True" value="1" {% if session.atHomeLocation %} checked {% endif %}> <span class="glyphicon glyphicon-home"></span>
+					</label>
+				</td>
+			</tr>
+			
+		</table>
+	</div>
+	</div>
+
+</form>
+	
 	<div style="padding-top:20px;">
 	<form action="/pcef/{{pcef.id}}/sessions/delete/{{session.sessionId}}" method="POST">
-	<input type="submit" class="btn btn-danger" value="Terminate session">
+	<input type="submit" class="btn btn-danger" value="Switch-off terminal">
 	</form>
 	</div>
 

@@ -1,24 +1,51 @@
 {% extends "base.html" %}
 {% block title %}Subscriber equipments{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+.thumbnail {
+    position:relative;
+    overflow:hidden;
+}
+ 
+.thumbnail .caption {
+    position:absolute;
+    top:0;
+    right:0;
+    background:rgba(60, 60, 60, 0.85);
+    width:100%;
+    height:100%;
+    padding:2%;
+    display: none;
+    text-align:center;
+    color:#fff !important;
+    z-index:2;
+}
+</style>
+
+{% endblock %}
 {% block content %}
 
   
 <div class="row">
  {%for ue in ues %}
-  	<div class="col-xs-6 col-xs-2">
+  	<div class="col-sm-6 col-sm-3">
 	    <div  class="thumbnail">
-	      <a href="/ue/{{ue.identity}}"><img src="/assets/images/{{ue.userEquipment}}.png" alt="{{ue.userEquipment}}"></a>
-	      <div class="caption">
-	        <h5>{{ ue.identity }}</h5>
-	        <form method="POST" action="/ue/{{ue.identity}}/sessions">
-	        <p><button class="btn btn-xs btn-default" role="button">Create session</button></p></form>
-	      </div>
+	    	<div class="caption">
+                    <p align="center"> <img src='/assets/images/{{ue.identity}}.png' width="100px"></p>
+                    <p>{{ ue.identity }}</p>
+                    <p><form method="POST" action="/ue/{{ue.identity}}/sessions">
+	        <p><button class="btn btn-xs btn-default" role="button">Use phone</button></p></form></p>
+	        <a href="/starmobile/{{ue.identity}}" target="_blank"><img src="/assets/images/logo.png" width="100px"><a>
+                </div>
+	      <img src="/assets/images/{{ue.userEquipment}}.png" alt="{{ue.userEquipment}}" class="img-responsive">
+	     
 	    </div>
 	</div>
 	{% endfor %}
 </div>
 
-	<table class="table">    
+	<!-- <table class="table">    
 		<thead>
 			<tr>      
 				<th>Identity</th>   
@@ -45,7 +72,21 @@
 			</tr>
 			{% endfor %}
 		</tbody>
-	</table>
+	</table> -->
 	</div>
+
+	<script type="text/javascript">
+	$("[rel='tooltip']").tooltip();    
+ 
+    $('.thumbnail').hover(
+        function(){
+            $(this).find('.caption').fadeIn(250); //.fadeIn(250)
+        },
+        function(){
+            $(this).find('.caption').fadeOut(250); //.fadeOut(205)
+        }
+    ); 
+
+</script>
 
 {% endblock %}

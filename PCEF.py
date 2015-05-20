@@ -24,6 +24,7 @@ class PCEF:
 		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 1000)
 		self.rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 20)
 		self.rules["Youtube"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
+		self.rules["Turbo"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
 
 	def resetPCEF(self):
 		self.users.clear()
