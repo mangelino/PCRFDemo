@@ -66,13 +66,13 @@ def usecase_provisioning(id = None):
 
 def provisionCase5(form):
 	imsi = 460001
-	prodId=0
+	prodId=7
 	if len(form["IMSI"]) > 0:
 		imsi = request.form["IMSI"]
 	if len(form["ProductID"]) > 0:
 		prodId = int(request.form["ProductID"])
-	else:
-		return "Missing Product ID to provision. Enter the Product ID shown in the Service Control screen from MZ"
+	#else:
+	#	return "Missing Product ID to provision. Enter the Product ID shown in the Service Control screen from MZ"
 	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
 	response = client.addBucket(IMSI=imsi,Billcycle=2,ProductID=prodId)
 	return response['ErrorCode']
@@ -94,10 +94,10 @@ def provisionCase3(form):
 	if len(request.form["child1"]) > 0:
 		child1 = request.form["child1"]
 	if len(request.form["child2"]) > 0:
-		child1 = request.form["child2"]
+		child2 = request.form["child2"]
 	client = SoapClient(wsdl=MZ_ROOT+":12005/pcrfWSHandler?WSDL",action="",trace=False)
 
-	response = client.addBucket(IMSI="grp1",Billcycle=3,ProductID=3,Recipient="DigitalRoute")
+	response = client.addBucket(IMSI="Family",Billcycle=3,ProductID=3,Recipient="DigitalRoute")
 	if response['ErrorCode'] != 0:
 		return response['ErrorCode']
 	response = client.addBucket(IMSI=child1,Billcycle=2,ProductID=1)
@@ -106,10 +106,10 @@ def provisionCase3(form):
 	response = client.addBucket(IMSI=child2,Billcycle=2,ProductID=1)
 	if response['ErrorCode'] != 0:
 		return response['ErrorCode']
-	response = client.addGroup(IMSI=child1,GroupID="grp1")
+	response = client.addGroup(IMSI=child1,GroupID="Family")
 	if response['ErrorCode'] != 0:
 		return response['ErrorCode']
-	response = client.addGroup(IMSI=child2,GroupID="grp1")
+	response = client.addGroup(IMSI=child2,GroupID="Family")
 
 	return response['ErrorCode']
 
@@ -276,9 +276,11 @@ def pcef_delete_session(pcefid=None,sessionid = None):
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
 def pcef_report_session_usage(sessionid = None, pcefid=None):
+	print sessionid, pcefid
 	if not sessionid in pcefs[pcefid].sessions:
+		print sessionid, pcefs[pcefid].sessions.keys()
 		abort(404)
-
+	print request.form
 	res = pcefs[pcefid].reportSessionUsage(sessionid, request)
 	if (res[0] != PCC.DIAMETER_SUCCESS):
 		code = res[0]
@@ -354,8 +356,8 @@ def show_bucket_data_holder():
 	for identityid in all_users:
 		userBuckets = getBuckets(identityid)		
 		buckets[identityid] = userBuckets;
-	userBuckets = getBuckets("grp1")
-	buckets["grp1"] = userBuckets;
+	userBuckets = getBuckets("Family")
+	buckets["Family"] = userBuckets;
 
 	return render_template("bdh.html", buckets = buckets)
 
@@ -372,7 +374,7 @@ def show_bucket_data_holder():
 
 @app.route("/bdh/<identity>", methods=["POST"])
 def reset_bdh(identity=None):
-	if not identity in all_users and identity!="grp1":
+	if not identity in all_users and identity!="Family":
 		abort(404)
 
 	if "action" in request.form and request.form["action"].startswith("Remove"):
@@ -431,16 +433,16 @@ def createDefaultUsersAndRegister():
 	print "Initializing default values..."
 
 	users = {}
-	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV")
-	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV")
-	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV")
-	users["460004"] = UE("460004", "IMSI", "Sony Xperia", "IMEISV")
+	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", "John")
+	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV", "Lisa")
+	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV", "Tim")
+	users["460004"] = UE("460004", "IMSI", "Sony Xperia", "IMEISV", "Jennifer")
 	for ue in users.values():
 		pcefs[1].registerUE(ue)
 
 	all_users.update(users)
 	users = {}
-	users["462005"] = UE("462005", "IMSI", "Sony Xperia", "IMEISV", 1)
+	users["462005"] = UE("462005", "IMSI", "OnePlus", "IMEISV", "Clark", 1)
 	
 	for ue in users.values():
 		pcefs[2].registerUE(ue)

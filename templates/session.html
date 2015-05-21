@@ -1,62 +1,91 @@
+
+
 {% extends "base.html" %}
 {% block title %}Session{% endblock %}
 {% block head %}
 {{ super() }}
-
+<style>
+.canvasjs-chart-credit {
+	visibility: hidden;
+}
+</style>
 <script type="text/javascript">
-	var intervalId;
-	var consChart;
-	var bwChart;
+	var intervalId = [];
+	var consChart = [];
+	var bwChart = [];
 	var consDps = [];
 	var bwDps = []; // dataPoints
-	var consumed = 0;
-	var tempConsumed = 0;
+	var consumed = [];
+	var tempConsumed = [];
 	var MAXSTOP = 999999999;
 	var AVGBW = 500;
-	var THROTTLE = 999999999;	
+	var THROTTLE = [];
 
-	
+	{% for minfo in session.monitoringInfo.values() %}
+		consDps["{{minfo.key}}"] = [];
+		bwDps["{{minfo.key}}"] = [];
+		THROTTLE["{{minfo.key}}"] = 999999999;
+	{% endfor %}
 
 	window.onload = function() {
-		consChart = new CanvasJS.Chart("consumption",{
+		{% for minfo in session.monitoringInfo.values() %}
+		consChart["{{minfo.key}}"] = new CanvasJS.Chart("consumption_{{minfo.key}}",{
 			title :{
 				text: "Data consumption"
 			},			
 			data: [{
 				type: "line",
-				dataPoints: consDps 
+				dataPoints: consDps["{{minfo.key}}"]
 			}]
 		});
 
-		bwChart = new CanvasJS.Chart("bandwidth",{
+		bwChart["{{minfo.key}}"] = new CanvasJS.Chart("bandwidth_{{minfo.key}}",{
 			title :{
 				text: "Bandwidth"
 			},			
 			data: [{
 				type: "line",
-				dataPoints: bwDps 
+				dataPoints: bwDps["{{minfo.key}}"]
 			}]
 		});
+		{% endfor %}
 	}
 
-	var xVal = 0;
-	var yVal;
+
+	var xVal = [];
 	var stopX = MAXSTOP;	
 	var averageBw = 200;
 	var updateInterval = 20;
 	var dataLength = 500; // number of dataPoints visible at any point
 
-	function updateChart (count, bw) {
+	function updateChart (count, bw, monitoringKey) {
+		var yVal;
 		count = count || 1;
 		// count is number of times loop runs to generate random dataPoints.
 		var delta= Math.round(bw/5 + Math.random() *(-bw));
-		
+		if (xVal[monitoringKey] === undefined) {
+			xVal[monitoringKey] = 0;
+		}
+		if (consDps[monitoringKey] === undefined) {
+			consDps[monitoringKey] = [];
+		}
 
+		if (bwDps[monitoringKey] === undefined) {
+			bwDps[monitoringKey] = [];
+		}
+
+		if (tempConsumed[monitoringKey] === undefined) {
+			tempConsumed[monitoringKey] = 0;
+		}
+
+		if (consumed[monitoringKey] === undefined) {
+			consumed[monitoringKey] = 0;
+		}
 		for (var j = 0; j < count; j++) {	
 			yVal = bw +  delta;
 			//if (consumed > 500000) {
-				if (yVal > THROTTLE) {
-					yVal = THROTTLE;
+				if (yVal > THROTTLE[monitoringKey]) {
+					yVal = THROTTLE[monitoringKey];
 
 				}
 			// 	if (stopX == MAXSTOP) {
@@ -64,75 +93,77 @@
 			// 	}
 			// }
 			if (yVal<0) {
-					yVal = 0;
-				}
-			bwDps.push({
-				x: xVal,
+				yVal = 0;
+			}
+			bwDps[monitoringKey].push({
+				x: xVal[monitoringKey],
 				y: yVal
 			});
 
-			consumed = consumed + yVal;
-			tempConsumed = tempConsumed + yVal;
-			consDps.push({
-				x: xVal,
-				y: consumed
+			consumed[monitoringKey] = consumed[monitoringKey] + yVal;
+			tempConsumed[monitoringKey] = tempConsumed[monitoringKey] + yVal;
+			consDps[monitoringKey].push({
+				x: xVal[monitoringKey],
+				y: consumed[monitoringKey]
 			});
 
-			xVal++;
-			if (xVal-stopX > dataLength) {
-				clearInterval(intervalId);
-			}
+			xVal[monitoringKey]++;
+
 		};
-		if (bwDps.length > dataLength)
+		if (bwDps[monitoringKey].length > dataLength)
 		{
-			bwDps.shift();				
+			bwDps[monitoringKey].shift();
 		}
 
-		if (consDps.length > dataLength)
+		if (consDps[monitoringKey].length > dataLength)
 		{
-			consDps.shift();				
+			consDps[monitoringKey].shift();
 		}
-		consChart.render();
-		bwChart.render();
+		consChart[monitoringKey].render();
+		bwChart[monitoringKey].render();
 
-		if (tempConsumed > 4100) {
-			submitFormPredefined("Data",tempConsumed);
-			tempConsumed = 0;
+		if (tempConsumed[monitoringKey] > 4100) {
+			submitFormPredefined(monitoringKey,tempConsumed[monitoringKey], monitoringKey);
+			tempConsumed[monitoringKey] = 0;
 		}
 	};
 	
 
-	function start() {
+	function start(key) {
 		stopX = MAXSTOP;
-		$("#usageWell").hide();
-		if (intervalId)
-			clearInterval(intervalId); 
-
+		$("#usageTable_"+key).hide();
+		if (intervalId[key]) {
+			clearInterval(intervalId[key]);
+		}
 		// generates first set of dataPoints
-		updateChart(dataLength,0); 
+		updateChart(dataLength,0, key);
 		//consumed = 0;
 
 		// update chart after specified time. 
-		intervalId = setInterval(function(){updateChart(1, AVGBW);}, updateInterval); 
+		intervalId[key] = setInterval(function(){updateChart(1, AVGBW, key);}, updateInterval);
 	}
 
-	function stop() {
+	function stop(key) {
 		// update chart after specified time. 
-		clearInterval(intervalId); 
-		$("#usageWell").show();
+		if (intervalId[key]) {
+			clearInterval(intervalId[key]);
+		}
+		$("#usageTable_"+key).show();
 	}
 
-	function pause() {
-		if (intervalId) {
-			clearInterval(intervalId);
-			intervalId = null;
+	function pause(key) {
+		if (intervalId[key]) {
+			clearInterval(intervalId[key]);
+			intervalId[key] = null;
+			$("#usageTable_"+key).show();
 		} else {
-			intervalId = setInterval(function(){updateChart(1, AVGBW);}, updateInterval);
+			$("#usageTable_"+key).hide();
+			intervalId[key] = setInterval(function(){updateChart(1, AVGBW);}, updateInterval);
 		}
 		
 	}
 
-	function submitFormPredefined(elem_id, bytes)
+	function submitFormPredefined(elem_id, bytes, key)
 	{
 		document.getElementById(elem_id).value = bytes; 
 		var postData = $("#sessionForm").serializeArray();
@@ -144,6 +175,7 @@
 			        data : postData,
 			        success:function(data, textStatus, jqXHR) 
 			        {
+						document.getElementById(elem_id).value = "";
 			        	var jsondata = JSON.parse(data);
 			            //alert(data);//data: return data from server
 			            bucketRows = "";
@@ -159,11 +191,15 @@
 			            }
 			            var rules = jsondata.session.rules;
 			            rulesHtml = "";
-			            THROTTLE = 999999999;
+			            THROTTLE[key] = 999999999;
 			            for (var j=0; j<rules.length; j++) {
-			            	THROTTLE = Math.min(jsondata.pcef.rules[rules[j]][5], THROTTLE);
+			            	THROTTLE[key] = Math.min(jsondata.pcef.rules[rules[j]][5], THROTTLE[key]);
 			            	rulesHtml += '<span class="label label-primary">'+rules[j]+'</span>'
 			            }
+						// Hack to only throttle the unspecified data flow
+						if (key != "Data") {
+							THROTTLE[key] = 99999999;
+						}
 			            $("#rules").html(rulesHtml);
 
 			        },
@@ -183,8 +219,8 @@
 			c += '<tr>\n';
 			c += "<td>"+bucket.id+"</td>";
 			c += "<td>"+bucket.name+"</td>";
-			c += "<td>"+bucket.startTime+"</td>";
-			c += "<td>"+bucket.stopTime+"</td>";
+			// c += "<td>"+bucket.startTime+"</td>";
+			// c += "<td>"+bucket.stopTime+"</td>";
 			c += "<td>"+getReadableFileSizeString(bucket.counters.tot)+"</td>";
 			c += "</tr>";
 		}
@@ -212,103 +248,145 @@
 
 	    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
 	};
+
+	function toggleLiveTraffic(key) {
+		$("#expandicon_"+key).toggleClass("glyphicon-expand glyphicon-collapse-up");
+		$("#livetraffic_"+key).toggleClass("hidden");
+	};
+
 	</script>
 	<script type="text/javascript" src="/assets/script/canvasjs.min.js"></script>
 {% endblock %}
 {% block content %}
 
-  
-<div class="container">	      
-	<div class="row">
+<!--
+<div class="container">
+	<div class="panel panel-default">
+	<div class="panel-heading">
+	<h3 class="panel-title"><span class="glyphicon glyphicon-expand" id="expandicon" aria-hidden="true" style="padding-right: 10px;" onclick='toggleLiveTraffic();'></span>Live traffic</h3>
+	</div>
+	<div class="panel-body hidden" id="livetraffic">
+		{% for minfo in session.monitoringInfo.values() %}
 		<div class="row">
-			<button onclick="start();" value="Start" class="btn btn-sm btn-default">Start</button>
-			<button onclick="stop();" value="Stop" class="btn btn-sm btn-default">Stop</button>
-			<button onclick="pause();" value="Pause" class="btn btn-sm btn-default">Pause/Play</button>
+		<div class="col-sm-12">
+			<button onclick='start("{{minfo.key}}");' value="Start" class="btn btn-sm btn-default">Start</button>
+			<button onclick='stop("{{minfo.key}}");' value="Stop" class="btn btn-sm btn-default">Stop</button>
+			<button onclick='pause("{{minfo.key}}");' value="Pause" class="btn btn-sm btn-default">Pause/Play</button>
+		</div>
 		</div>
 		<div class="row" style="padding: 20px;">
-			<div class="col-md-4" id="consumption" style="height: 200px;">
+			<div class="col-md-4" id="consumption_{{minfo.key}}" style="height: 200px;">
 			</div>
-			<div class="col-md-4 col-md-offset-2" id="bandwidth" style="height: 200px;">
+			<div class="col-md-4 col-md-offset-2" id="bandwidth_{{minfo.key}}" style="height: 200px;">
 		</div>
 		</div>
-	</div>
-	
-
+		{% endfor %}
+		</div>
+</div>-->
 
 <!-- <div>
 <button class="btn btn-sm btn-default" onclick='$("#vid1").play()'>Play</button>
 	 <video id="vid1" width="640" height="360" controls>
-       <source src="/assets/video/big_buck_bunny_1080p_h264.mov"/> 
+       <source src="/assets/video/big_buck_bunny_1080p_h264.mov"/>
        Your browser does not support the video tag.
    </video>
 </div> -->
-<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post"> 
-	<div id="usageWell" class="row well">
-		<div class="col-md-10">
-			<table class="table table-condensed">
-				<thead>
-					<tr>	
-						<th class="col-sm-1">Traffic type</th>
-						<th class="col-sm-1">Used</th> 
-						<th class="col-sm-1">Granted</th>
-						<th class="col-sm-1">New usage</th>
-						<th class="col-sm-2">Usage</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for minfo in session.monitoringInfo.values() %}				
-						<tr>	
-							<td> {{ minfo.key}} </td>
-							<td> {{ minfo.usage|filesizeformat}} </td>
-							<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td> 
-							<td><input id="{{minfo.key}}" type="text" name="{{minfo.key}}"></td>
-							<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
-							<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
-							<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
-							<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
+<div class="container">
+
+	<div class="row">
+		{% for minfo in session.monitoringInfo.values() %}
+			<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title"><span class="glyphicon glyphicon-expand" id="expandicon" aria-hidden="true" style="padding-right: 10px;"
+											  onclick='toggleLiveTraffic("{{minfo.key}}");'></span>{{minfo.key}}</h3>
+			</div>
+			<div class="panel-body hidden" id="livetraffic_{{minfo.key}}">
+
+				<div class="row">
+					<div class="col-sm-12">
+						<button onclick='start("{{minfo.key}}");' value="Start" class="btn btn-sm btn-default">Start</button>
+						<button onclick='stop("{{minfo.key}}");' value="Stop" class="btn btn-sm btn-default">Stop</button>
+						<button onclick='pause("{{minfo.key}}");' value="Pause" class="btn btn-sm btn-default">Pause/Play</button>
+					</div>
+				</div>
+				<div class="row" style="padding: 20px;">
+					<div class="col-md-4" id="consumption_{{minfo.key}}" style="height: 200px;">
+					</div>
+					<div class="col-md-4 col-md-offset-2" id="bandwidth_{{minfo.key}}" style="height: 200px;">
+					</div>
+				</div>
+
+			</div>
+		</div>
+		{% endfor %}
+	</div>
+	<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post">
+
+	<div id="usageWell" class="well">
+
+
+
+		<div class="row">
+			<div class="col-md-10">
+				<table class="table table-condensed" >
+					<thead>
+						<tr>
+							<th class="col-sm-1">Traffic type</th>
+							<th class="col-sm-1">Used</th>
+							<th class="col-sm-1">Granted</th>
+							<th class="col-sm-1">New usage</th>
+							<th class="col-sm-2">Usage</th>
 						</tr>
+					</thead>
+					<tbody>
+					{% for minfo in session.monitoringInfo.values() %}
+							<tr id="usageTable_{{minfo.key}}">
+								<td> {{ minfo.key}} </td>
+								<td> {{ minfo.usage|filesizeformat}} </td>
+								<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td>
+								<td><input id="{{minfo.key}}" type="text" class="form-control" placeholder="kB" name="{{minfo.key}}"></td>
+								<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
+								<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
+								<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
+								<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
+							</tr>
 					{% endfor %}
-				</tbody>
-			</table>
+					</tbody>
+				</table>
+			</div>
+			<div class="col-md-2">
+				<input type="submit" class="btn btn-success" value="Report usage">
+			</div>
+
 		</div>
-		<div class="col-md-2">
-			<input type="submit" class="btn btn-success" value="Report usage">		
-		</div>
+
+
+
 	</div>
 
 
-	
+
 	<div class="row">
 		<div class="col-md-8">
 		<h3>Buckets</h3>
 			<div id="demo" class="collapse in">
-				<table id="bucketsTable" class="table">  
+				<table id="bucketsTable" class="table">
 					<tr>
 						<th>ID</th>
 						<th>Product</th>
-						<th>StartTime</th>
-						<th>StopTime</th>
-						<th>Counters</th>
+						<!-- <th>StartTime</th>
+						<th>StopTime</th> -->
+						<th>Consumed</th>
 					</tr>
 					{% for bucket in buckets %}
 					{% if bucket.stopTime == None or unicodeToDatetime(bucket.stopTime) > date_now() %}
 					<tr>
 						<td>{{bucket.id}}</td>
 						<td>{{bucket.name}}</td>
-						<td>{{bucket.startTime}}</td>
-						<td>{{bucket.stopTime}}</td>
-						<td><span id="bucket_{{bucket.id}}">		
+						<!-- <td>{{bucket.startTime}}</td>
+						<td>{{bucket.stopTime}}</td> -->
+						<td><span id="bucket_{{bucket.id}}">
 						{{bucket.counters["tot"]|filesizeformat}}</span>
-							<!--
-							<table class="table">  
-							{% for k,v in bucket.counters.iteritems() %}
-							<tr>
-									<td align="left">{{k}}</td><td align="right">{{v}}</td>
-							</tr>
-							{% endfor %}
-							</table>
-							-->
-			
 						</td>
 					</tr>
 					{% endif %}
@@ -316,10 +394,10 @@
 				</table>
 			</div>
 		</div>
-  	
+
   	<div class="col-md-4">
-	<h3>Session</h3>     
-		<table class="table">   
+	<h3>Session</h3>
+		<table class="table">
 			<tr>
 				<td>Rules</td>
 				<td>
@@ -330,12 +408,12 @@
 					{% endfor %}
 					</h4>
 				</td>
-			</tr> 
+			</tr>
 			<!-- <tr>
 				<td>Session Id</td><td> {{session.sessionId}} </td>
 			</tr> -->
-			<tr>	
-				<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td> 
+			<tr>
+				<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td>
 			</tr>
 			<tr>
 				<td>Location</td>
@@ -348,13 +426,13 @@
 					</label>
 				</td>
 			</tr>
-			
+
 		</table>
 	</div>
 	</div>
+ </form>
+</div>
 
-</form>
-	
 	<div style="padding-top:20px;">
 	<form action="/pcef/{{pcef.id}}/sessions/delete/{{session.sessionId}}" method="POST">
 	<input type="submit" class="btn btn-danger" value="Switch-off terminal">

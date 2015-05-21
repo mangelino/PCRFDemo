@@ -24,33 +24,37 @@
 </head>
 <body role="document">
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container" style="width:1000px; padding-left:0px;">
-        <div class="navbar-header">
-          <div class="logo"><img src="/assets/images/logo.png" style="width: 250px" alt="Star Mobile"/></div>
-        </div>
 
-        <div id="navbar" class="collapse navbar-collapse topnav">
-          <ul class="nav navbar-nav navbar-left">
-            <li><a href="#">About us</a></li>
-            <li><a href="#">Sign up</a></li>
+<nav class="navbar navbar-inverse navbar-fixed-top topnav">
+      <div class="container">
+        <div class="navbar-header" style="height:100px;">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/"><img src="/assets/images/logo.png" style="width: 200px" alt="Star Mobile"/></a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Sign Up</a></li>
             <li><a href="#">My Star Pages</a></li>
             <li><a href="#">My Overview</a></li>
             
           </ul>
-          <ul class="nav navbar-nav navbar-right" style="padding-right:30px">
+          <ul class="nav navbar-nav navbar-right">
 
-            <li role="presentation" class="active"><a style="
-    background: rgb(40, 171, 226);
-    border-radius: 10px;" href="/ue/{{ue.identity}}">{{ue.identity}}<span class="badge">3</span></a>
+            <li role="presentation" class="active"><a  href="/ue/{{ue.identity}}"><span style="font-size: 14px; padding: 4px 4px 4px 8px; background: rgb(40, 171, 226); border-radius: 10px;">{{ue.name}}<span class="badge" style="margin-left:8px">{{buckets|count}}</span></span></a>
             </li>
                            
  
            </ul>
-        </div>
-       
+        </div><!--/.nav-collapse -->
       </div>
     </nav>
+
     <div class="container" style="padding-top:75px;">
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -61,13 +65,13 @@
                 {% endfor %}
         {% endif %}
     {% endwith %}
-            
+
             <div class="row clearfix">
                 <div class="col-md-8 column">
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <h1 class="panel-title">
-                                Your Subscriptions
+                                Your Subscriptions ({{ue.identity}})
                             </h1>
                         </div>
                         <div class="panel-body">
@@ -103,7 +107,7 @@
                                  <li class="list-group-item" >
                                     <div class="thumbnail">
                                         <div class="caption">
-                                            <button onclick='$("#usecase_1").submit();' class="btn btn-sm btn-primary">Buy!</button>
+                                            <button onclick='$("#usecase_1").submit();' class="btn btn-sm btn-primary" style="width:80px">Buy!</button>
                                         </div>
                                         <form action="/usecase/1" method="post" id="usecase_1">       
                                             <input name="IMSI" type="hidden" value="{{ue.identity}}">                                        
@@ -114,7 +118,7 @@
                                 <li class="list-group-item">
                                     <div class="thumbnail">
                                         <div class="caption" >
-                                            <button onclick='$("#usecase_2").submit();' class="btn btn-sm btn-primary">Buy!</button>
+                                            <button onclick='$("#usecase_2").submit();' class="btn btn-sm btn-primary" style="width:80px">Buy!</button>
                                         </div>
                                         <form action="/usecase/2" method="post" id="usecase_2">       
                                             <input name="IMSI" type="hidden" value="{{ue.identity}}">                                        
@@ -125,7 +129,7 @@
                                 <li class="list-group-item">
                                     <div class="thumbnail">
                                         <div class="caption" >
-                                            <button onclick='$("#usecase_3").submit();' class="btn btn-sm btn-primary">Buy!</button>
+                                            <button onclick='$("#usecase_3").submit();' class="btn btn-sm btn-primary" style="width:80px">Buy!</button>
                                         </div>
                                         <form action="/usecase/3" method="post" id="usecase_3">       
                                             <input name="child1" type="hidden" value="460002">
@@ -137,7 +141,7 @@
                                 <li class="list-group-item">
                                     <div class="thumbnail">
                                         <div class="caption" >
-                                            <button onclick='$("#usecase_4").submit();' class="btn btn-sm btn-primary">Buy!</button>
+                                            <button onclick='$("#usecase_4").submit();' class="btn btn-sm btn-primary" style="width:80px">Buy!</button>
                                         </div>
                                         <form action="/usecase/4" method="post" id="usecase_4">       
                                             <input name="IMSI" type="hidden" value="{{ue.identity}}">                                       
@@ -162,30 +166,31 @@
                             </li>
                             <li data-slide-to="1" data-target="#carousel-285359">
                             </li>
+                            {% if ue.identity == "462005" %}
+                            <li data-slide-to="2" data-target="#carousel-285359">
+                            </li>
+                            {% endif %}
                         </ol>
                         <div class="carousel-inner">
-                            <div class="item active">
-                                <img alt="" src="/assets/images/reklam.png"  />
-                                <div class="carousel-caption">
-                                    <h4>
-                                        
-                                    </h4>
-                                    <p>
-                                        
-                                    </p>
-                                </div>
+
+                            <div class="item {% if ue.identity != "462005" %} active {% endif %}">
+                                <img alt="" src="/assets/images/reklam.png" onclick='$("#usecase_4").submit();'/>
                             </div>
                             <div class="item">
-                                <img alt="" src="/assets/images/sports.png"  />
-                                <div class="carousel-caption">
-                                    <h4>
-                                        
-                                    </h4>
-                                    <p>
-                                        
-                                    </p>
-                                </div>
+                                <form action="/usecase/5" method="post" id="usecase_5">       
+                                    <input name="IMSI" type="hidden" value="{{ue.identity}}">
+                                    <input name="ProductId" type="hidden" value="{{ue.identity}}">
+                                </form>
+                                <img alt="" src="/assets/images/sports.png"  onclick='$("#usecase_5").submit();'/>
                             </div>
+                            {% if ue.identity == "462005" %}
+                            <div class="item active">
+                                <form action="/usecase/6" method="post" id="usecase_6">
+                                    <input name="IMSI" type="hidden" value="{{ue.identity}}">
+                                </form>
+                                <img alt="" src="/assets/images/home.png"  onclick='$("#usecase_6").submit();'/>
+                            </div>
+                            {% endif %}
                           
                         </div> 
                             <a class="left carousel-control" href="#carousel-285359" data-slide="prev"><span class="glyphicon glyphicon-chevron-left"></span></a> 
