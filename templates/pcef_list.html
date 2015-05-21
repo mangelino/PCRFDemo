@@ -6,7 +6,10 @@
 	<div class="row">
 		{% for p in pcefs %} 
 		<div class="col-sm-4 col-sm-offset-1 well">
-			<a href="/pcef/{{p.id}}">{{p.name}}</a>
+			<div class="thumbnail">
+			<a href="/pcef/{{p.id}}"><h2 style="text-align:center;">{{p.name}}</h2><img src="/assets/images/pcef{{p.id}}.jpg"></a>
+				
+				</div>
 		</div> 
 		{% endfor %}
 	</div>

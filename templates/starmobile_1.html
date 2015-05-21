@@ -173,7 +173,7 @@
                         </ol>
                         <div class="carousel-inner">
 
-                            <div class="item {% if ue.identity != "462005" %} active {% endif %}">
+                            <div class="item {% if ue.identity != '462005' %} active {% endif %}">
                                 <img alt="" src="/assets/images/reklam.png" onclick='$("#usecase_4").submit();'/>
                             </div>
                             <div class="item">
@@ -185,10 +185,10 @@
                             </div>
                             {% if ue.identity == "462005" %}
                             <div class="item active">
-                                <form action="/usecase/6" method="post" id="usecase_6">
+                                <form action="/usecase/7" method="post" id="usecase_7">
                                     <input name="IMSI" type="hidden" value="{{ue.identity}}">
                                 </form>
-                                <img alt="" src="/assets/images/home.png"  onclick='$("#usecase_6").submit();'/>
+                                <img alt="" src="/assets/images/home.png"  onclick='$("#usecase_7").submit();'/>
                             </div>
                             {% endif %}
                           
