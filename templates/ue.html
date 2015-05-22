@@ -4,6 +4,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.0/css/bootstrap-toggle.min.css" rel="stylesheet">
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.0/js/bootstrap-toggle.min.js"></script>
 {% endblock %}
 {% block title %}User Equipment{% endblock %}
 {% block content %}
@@ -37,44 +39,36 @@
 	</table>
 	</div>
 </div>
-<!-- <div>
-<form action = "/ue/{{ue.identity}}/sessions" method="post">
-<input type="submit" class="btn btn-default" value="Create session"/>
+<div>
+</div>
+{% if ue.sessions|count > 0 %} 
+<form action="/pcef/{{ue.pcef.id}}/sessions/delete/{{ue.sessions[0].sessionId}}" method="POST" id="session-terminate">
 </form>
-</div> -->
-
-{% if ue.sessions|count >0 %}
-<!-- <h4>Sessions</h4>
-	<div class="row">
-	<div class="col-md-4">
-			<table class="table">
-			<thead>
-				<tr>
-					<th>#</th>
-					<th>Session key</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for s in ue.sessions %}
-				<tr> 
-					<td> {{loop.index}} </td>
-					<td> <a href="/ue/{{ue.identity}}/session/{{s.sessionId}}">{{s.sessionId|truncate(15, True)}}</a> </td>
-				</tr>
-				{% endfor %}
-			</tbody>
-			</table>
-			</div>
-		</div> -->
-	<a href="/ue/{{ue.identity}}/session/{{ue.sessions[0].sessionId}}"><h4><span class="label label-primary">Continue using phone</span></h4></a>
 {% else %}
-{% if buckets|count >0 %}
+<form action = "/ue/{{ue.identity}}/sessions" method="post" id ="session-create">
+</form>
+{% endif %} 
 
-	<div>
-	<form action = "/ue/{{ue.identity}}/sessions" method="post">
-	<input type="submit" class="btn btn-default" value="Use phone"/>
-	</form>
-	</div>
-	{% else %}
+<input type="checkbox" id="phone-switch" {% if ue.sessions|count > 0 %} checked {% endif %} {% if buckets|count == 0%} disabled {% endif %} data-toggle="toggle" >
+<script>
+  $(function() {
+    $('#phone-switch').change(function() {
+    	if ($(this).prop('checked')) {
+    		$("#session-create").submit();
+    	}
+    	else 
+    	{
+    		$("#session-terminate").submit();
+    	}
+    })
+  })
+</script>
+{% if ue.sessions|count >0 %}
+	<a href="/ue/{{ue.identity}}/session/{{ue.sessions[0].sessionId}}"><h4><span class="label label-primary">Use phone</span></h4></a>
+{% else %}
+{% if buckets|count == 0 %}
+
+	
 	<p>You must purchase some subscription.</p>
 	<p>Please check our tremendous offers at </p> <a href="/starmobile/{{ue.identity}}"><img style="background-image:url(/assets/images/background.jpg); " src="/assets/images/logo.png" width="400px"></a>
 	{% endif %}

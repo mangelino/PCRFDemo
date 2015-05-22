@@ -1,0 +1,180 @@
+/*
+ * Author: 
+ * DigitalRoute
+ *
+ * Purpose:
+ * To handle internal format UDRs.
+ * 
+ * Last modified:
+ * 2013-01-22
+ */ 
+
+
+import Diameter;
+import PCC.Buckets;
+import PCC.Products;
+import PCRF.Rules;
+
+// Internal wrapper that holds all data related to CCR during processing
+internal rc {
+
+    // Diameter session origin (hostname and realm)
+    string Destination;
+
+    // Bearer-Identifier, if missing in CCR can be retrieved from session
+    bytearray Bearer_Identifier;
+
+    // 3GPP-User-Location-Info, if missing in CCR can be retrieved from session
+    string TGPP_User_Location_Info;
+
+    // RAT-Type, if missing in CCR can be retrieved from session
+    int RAT_Type;
+
+    // SGSN-MC-MNC, if missing in CCR can be retrieved from session
+    string TGPP_SGSN_MCC_MNC;
+
+    // User-Equipment-Info, if missing in CCR can be retrieved from session
+    string User_Equipment_Info;
+
+    // Subscriber Key, ussed to access Bucket Data Holder
+    string subscriberKey;
+
+    // Diameter Request Cycle UDR
+    RequestCycleUDR rc;
+
+    // Internal CCR
+    ccr ccr;
+
+    // Internal CCA
+    cca cca;
+
+    // Timestamp
+    date timestamp;
+
+    // All Bucket Data Holders (subscriber and groups)
+    map<string, BucketDataHolder> bdh;
+
+    // Container for not needed BDH but still to be commited (groups)
+    map<string, BucketDataHolder> bdhRemoved;
+
+    // Bucket Data Holder transaction
+    any txn;
+
+    // Notifications
+    list<NotificationInfo> notifications;
+
+    //Error log message code
+    list<int> errorCodes;
+};
+
+// Internal notification UDR sent to InterWorkflow
+internal NotificationInfo {
+    string recipient;
+    int ID;
+    string Name;
+    byte CounterType;
+    double Level;
+    boolean Required;
+    string Type;
+    string Address;
+    string Message;
+    map<string, any> Misc;
+};
+
+// Internal CCR
+internal ccr {
+    string Session_Id;
+    int CC_Request_Type;
+    int CC_Request_Number;
+    long Auth_Application_Id;
+    string msisdn;
+    string imsi;
+    int RAT_Type;
+    int IP_CAN_Type;
+    bytearray Bearer_Identifier;
+    string TGPP_User_Location_Info;
+    string TGPP_SGSN_MCC_MNC;
+    string User_Equipment_Info;
+    int Home_Location_Flag; // USE CASE 5
+    list<umi> umi;
+};
+
+// Internal CCA
+internal cca {
+    string Session_Id;
+    int CC_Request_Type;
+    int CC_Request_Number;
+    long Auth_Application_Id;
+    int Result_Code;
+    list<int> Event_Trigger;
+
+    list<umi> umi;
+
+    list<Static_Rule> rulesInstall;
+    list<Static_Rule> rulesRemove;
+    QoS_Information qos;
+    QoS_Information qos_old;
+    list<Base.AVP.Failed_AVP> Failed_AVP;
+
+    // to be used for Rule-Deactiovation-Time
+    map<int, date> ruleDeactTimeMap;
+
+};
+
+// New rules to install
+internal updateRules {
+    boolean changed;
+    list<Static_Rule> rulesInstall;
+    list<Static_Rule> rulesRemove;
+    QoS_Information qos_old;
+    QoS_Information qos;
+    map<int, date> statRuleDeactMap;
+};
+
+// Internal RAR
+internal rar {
+    string Session_Id;
+    string Destination_Host;
+    string Destination_Realm;
+
+    // Not implemented yet
+    list<umi> umi;
+    list<Static_Rule> rulesInstall;
+    list<Static_Rule> rulesRemove;
+    QoS_Information qos;
+    QoS_Information qos_old;
+    // Internal field
+    bytearray Bearer_Identifier;
+
+    // to be used for Rule-Deactiovation-Time
+    map<int, date> ruleDeactTimeMap;
+};
+
+// Internal Usage-Monitoring-Information item
+// TODO maybe rename using 3GPP spec names - CC_Input_Octets, Monitoring_Key ???
+internal umi {
+    string monitoringKey;
+    list<bucketMapping> buckets;
+    long input;
+    long output;
+    long total;
+    int Usage_Monitoring_Level: optional;
+    int Usage_Monitoring_Report: optional;
+    int Usage_Monitoring_Support: optional;
+    date Monitoring_Time: optional;
+};
+
+// Bucket and Monitoring-Key mapping UDR
+internal bucketMapping {
+    string subscriberKey;
+    string monitoringKey;
+    int isAtHome;
+    string bucketId;
+};
+
+// Internal RAR to be send when bucket is provisioned
+// This UDR is used to send RAR signal thru InterWorkflow
+internal internalRAR {
+    string subscriberKey;
+    string actionType;
+};

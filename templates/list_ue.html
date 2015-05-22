@@ -2,6 +2,9 @@
 {% block title %}Subscriber equipments{% endblock %}
 {% block head %}
 {{ super() }}
+<link href="https://gitcdn.github.io/bootstrap-toggle/2.2.0/css/bootstrap-toggle.min.css" rel="stylesheet"/>
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.0/js/bootstrap-toggle.min.js"></script>
+
 <style>
 .thumbnail {
     position:relative;
@@ -34,12 +37,42 @@
 	    	<div class="caption">
                 <p align="center"> <img src='/assets/images/{{ue.identity}}.png' width="100px"></p>
                 <p>{{ ue.identity }}</p>
-                {% if ue.sessions|count > 0 %}
+
+
+                <!-- {% if ue.sessions|count > 0 %}
                 	<a href="/ue/{{ue.identity}}/session/{{ue.sessions[0].sessionId}}"><h4><span class="label label-warning">Continue using phone</span></h4></a>
 	        	{% else %}
 	        		<p><form method="POST" action="/ue/{{ue.identity}}/sessions">
        				<p><button class="btn btn-xs btn-default" role="button">Use phone</button></p></form></p>
-	        	{% endif %}
+	        	{% endif %} -->
+
+				{% if ue.sessions|count > 0 %} 
+				<form action="/pcef/{{ue.pcef.id}}/sessions/delete/{{ue.sessions[0].sessionId}}" method="POST" id="session-terminate-{{ue.identity}}">
+				</form>
+				{% else %}
+				<form action = "/ue/{{ue.identity}}/sessions" method="post" id="session-create-{{ue.identity}}">
+				</form>
+				{% endif %} 
+
+				<input type="checkbox" id="phone-switch-{{ue.identity}}" {% if ue.sessions|count > 0 %} checked {% endif %} data-toggle="toggle" >
+				<script>
+				  $(function() {
+				    $('#phone-switch-{{ue.identity}}').change(function() {
+				    	if ($(this).prop('checked')) {
+				    		$("#session-create-{{ue.identity}}").submit();
+				    	}
+				    	else 
+				    	{
+				    		$("#session-terminate-{{ue.identity}}").submit();
+				    	}
+				    })
+				  })
+				</script>
+				{% if ue.sessions|count >0 %}
+					<a href="/ue/{{ue.identity}}/session/{{ue.sessions[0].sessionId}}"><h4><span class="label label-primary">Use phone</span></h4></a>
+				{% endif %}
+
+
 	        	<div class="thumbnail" style='background-image:url(/assets/images/background.jpg); border:none;'>
 	        <a href="/starmobile/{{ue.identity}}" target="_blank"><img src="/assets/images/logo.png"></a>
 	        </div>
