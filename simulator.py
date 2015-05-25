@@ -8,6 +8,7 @@ import json
 import jinja2
 import datetime
 from dateutil import parser
+import collections
 
 from pysimplesoap.client import SoapClient
 from UE import UE
@@ -252,7 +253,7 @@ def pcef_list_rules(pcefid=None):
 def pcef_rule(ruleid = None, pcefid=None):
 	if not ruleid in pcefs[pcefid].rules:
 		abort(404)
-	return render_template("pcef_rule.html", rule = pcefs[pcefid].rules[ruleid])
+	return render_template("pcef_rule.html", rule = pcefs[pcefid].rules[ruleid]._asdict())
 
 @app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
 def pcef_list_sessions(pcefid=None):
@@ -411,7 +412,17 @@ def my_utilities():
 		else:
 			return "Not activated"
 
-	return dict(date_now=date_now, unicodeToDatetime=unicodeToDatetime, daysLeft=daysLeft)
+	def typeOf(a):
+		if type(a) is list:
+			return 'list'
+		elif type(a) is dict or type(a) is collections.OrderedDict:
+			return 'dict'
+		elif isinstance(a, tuple):
+			return 'namedtuple'
+		else:
+			return 'obj'
+
+	return dict(date_now=date_now, unicodeToDatetime=unicodeToDatetime, daysLeft=daysLeft, type=typeOf)
 
 
 def datetimeformat(value, format="%Y-%m-%d %H-%M-%S"):

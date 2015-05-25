@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}PCEF Rule{% endblock %}
+{% block content %}
+
+	       
+			<h2>Rule</h2>        
+			
+			<div class="row">
+			<div class="col-sm-4">
+			<table border="0" class="table">    
+				{% for k,v in rule.iteritems() recursive %}
+					{% if type(v) == 'obj' %} 
+						<tr>
+								<td>{{k}}</td><td>{{v}}</td>
+						</tr>
+					{% elif type(v) == 'list' %}
+					<table class="table">
+					{% set outerloop = loop %}
+					{% for l in v %}
+						{{ outerloop(l) }}
+					{% endfor %}
+					
+					</table>	
+					{% elif type(v) == 'namedtuple' %}
+					<table class="table">	
+						{{ loop(v._asdict()) }}
+					</table>
+					{% endif %}
+				{% endfor %}
+				
+			</table>
+			</div>
+			</div>
+
+</section>
+
+</article>
+{% endblock %}

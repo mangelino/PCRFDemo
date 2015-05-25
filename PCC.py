@@ -2,7 +2,11 @@ from collections import namedtuple
 
 DIAMETER_SUCCESS = 2001
 
-Rule = namedtuple("Rule", "name qos uploadMin_kbs downloadMin_kbs uploadMax_kbs downloadMax_kbs")
+Rule = namedtuple("Rule", "name qci uploadMin_kbs downloadMin_kbs uploadMax_kbs downloadMax_kbs")
+StaticRule = namedtuple("StaticRule", "name chargingId qosInfo flowInfo monitoringKey sponsorId precedence")
+QoSInfo = namedtuple("QoSInfo", "name qci MBR_UL MBR_DL GBR_UL GBR_DL ARP")
+FlowInfo = namedtuple("FlowInfo", "SDF_Description")
+SDFTemplate = namedtuple("SDFTemplate", "name precedence dst dstPort src srcPort protocol")
 MonitoringInfo = namedtuple("MonitoringInfo", "key intKey productName gsu usu usage")
 Session = namedtuple("Session", "identity sessionId monitoringInfo installedRules atHomeLocation")
 

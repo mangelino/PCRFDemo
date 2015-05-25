@@ -1,4 +1,4 @@
-from PCC import Rule, Session, MonitoringInfo, RulesActions
+from PCC import Rule, Session, MonitoringInfo, RulesActions, StaticRule, QoSInfo, FlowInfo, SDFTemplate
 import PCC
 import requests
 import json
@@ -19,6 +19,62 @@ class PCEF:
 		self.rules = {}
 		self.messages = []
 		# For the moment we leave the rules hardcoded
+		self.staticRule = {}
+
+		self.staticRule["Data"] = StaticRule(name="Data", chargingId=1, 
+			qosInfo=QoSInfo("Data", 6, 1000, 10000, 10000, 1000,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "Data",
+			sponsorId = None,
+			precedence = 255)
+
+		self.staticRule["Throttle"] = StaticRule(name="Throttle", chargingId=1, 
+			qosInfo=QoSInfo("Throttle", 6, 1000, 1000, 2000, 50,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "Data",
+			sponsorId = None,
+			precedence = 50)
+
+		self.staticRule["Throttle_Group"] = StaticRule(name="Throttle_Group", chargingId=1, 
+			qosInfo=QoSInfo("Throttle_Group", 6, 1000, 1000, 2000, 20,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "Data",
+			sponsorId = None,
+			precedence = 40)
+
+		self.staticRule["Youtube"] = StaticRule(name="Youtube", chargingId=1, 
+			qosInfo=QoSInfo("Youtube", 5, 1000, 1000, 2000, 2000,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("youtube","100","youtube.com","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "Youtube",
+			sponsorId = None,
+			precedence = 30)
+
+		self.staticRule["SportVod"] = StaticRule(name="SportVod", chargingId=1, 
+			qosInfo=QoSInfo("Livevideo", 4, 1000, 1000, 2000, 2000,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("sportvod","90","sport.cdn.starmobile.com","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "SportVod",
+			sponsorId = None,
+			precedence = 20)
+
+		self.staticRule["Turbo"] = StaticRule(name="Turbo", chargingId=1, 
+			qosInfo=QoSInfo("Turbo", 6, 1000, 1000, 2000, 2000,0),
+			flowInfo = FlowInfo([
+				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
+			]),
+			monitoringKey = "Data",
+			sponsorId = None,
+			precedence = 35)
+
 		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 1000)
 		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 50)
 		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 1000)
