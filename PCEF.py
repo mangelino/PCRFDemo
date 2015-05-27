@@ -5,7 +5,8 @@ import json
 from collections import namedtuple
 from datetime import datetime
 
-Message = namedtuple("Message", "name type subtype fr to time content")
+
+Message = namedtuple("Message", "name type subtype fr to time content descr")
 
 class PCEF:
 	def __init__(self, pcefid, name, ip, port):
@@ -16,13 +17,13 @@ class PCEF:
 		self.diameterPort = port
 		self.users = {}
 		self.sessions = {}
-		self.rules = {}
+		#self.rules = {}
 		self.messages = []
 		# For the moment we leave the rules hardcoded
-		self.staticRule = {}
+		self.staticRules = {}
 
-		self.staticRule["Data"] = StaticRule(name="Data", chargingId=1, 
-			qosInfo=QoSInfo("Data", 6, 1000, 10000, 10000, 1000,0),
+		self.staticRules["Data"] = StaticRule(name="Data", chargingId=1, 
+			qosInfo=QoSInfo("Data", 6, 1000000, 1000000, 1000000, 1000000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
@@ -30,8 +31,8 @@ class PCEF:
 			sponsorId = None,
 			precedence = 255)
 
-		self.staticRule["Throttle"] = StaticRule(name="Throttle", chargingId=1, 
-			qosInfo=QoSInfo("Throttle", 6, 1000, 1000, 2000, 50,0),
+		self.staticRules["Throttle"] = StaticRule(name="Throttle", chargingId=1, 
+			qosInfo=QoSInfo("Throttle", 6, 100000, 100000, 100000, 100000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
@@ -39,8 +40,8 @@ class PCEF:
 			sponsorId = None,
 			precedence = 50)
 
-		self.staticRule["Throttle_Group"] = StaticRule(name="Throttle_Group", chargingId=1, 
-			qosInfo=QoSInfo("Throttle_Group", 6, 1000, 1000, 2000, 20,0),
+		self.staticRules["Throttle_Group"] = StaticRule(name="Throttle_Group", chargingId=1, 
+			qosInfo=QoSInfo("Throttle_Group", 6, 50000, 50000, 50000, 50000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
@@ -48,8 +49,8 @@ class PCEF:
 			sponsorId = None,
 			precedence = 40)
 
-		self.staticRule["Youtube"] = StaticRule(name="Youtube", chargingId=1, 
-			qosInfo=QoSInfo("Youtube", 5, 1000, 1000, 2000, 2000,0),
+		self.staticRules["Youtube"] = StaticRule(name="Youtube", chargingId=1, 
+			qosInfo=QoSInfo("Youtube", 5, 1000000, 1000000, 2000000, 2000000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("youtube","100","youtube.com","all","*.*.*.*","all","all")
 			]),
@@ -57,8 +58,8 @@ class PCEF:
 			sponsorId = None,
 			precedence = 30)
 
-		self.staticRule["SportVod"] = StaticRule(name="SportVod", chargingId=1, 
-			qosInfo=QoSInfo("Livevideo", 4, 1000, 1000, 2000, 2000,0),
+		self.staticRules["SportVod"] = StaticRule(name="SportVod", chargingId=1, 
+			qosInfo=QoSInfo("Livevideo", 4, 1000000, 1000000, 2000000, 2000000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("sportvod","90","sport.cdn.starmobile.com","all","*.*.*.*","all","all")
 			]),
@@ -66,21 +67,14 @@ class PCEF:
 			sponsorId = None,
 			precedence = 20)
 
-		self.staticRule["Turbo"] = StaticRule(name="Turbo", chargingId=1, 
-			qosInfo=QoSInfo("Turbo", 6, 1000, 1000, 2000, 2000,0),
+		self.staticRules["Turbo"] = StaticRule(name="Turbo", chargingId=1, 
+			qosInfo=QoSInfo("Turbo", 6, 1000000, 1000000, 2000000, 2000000,0),
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
 			monitoringKey = "Data",
 			sponsorId = None,
 			precedence = 35)
-
-		self.rules["Data"] = Rule("Data", 6, 1000, 10000, 10000, 1000)
-		self.rules["Throttle"] = Rule("Throttle", 6, 1000, 1000, 2000, 50)
-		self.rules["Data_Group"] = Rule("Data_Group", 6, 1000, 10000, 10000, 1000)
-		self.rules["Throttle_Group"] = Rule("Throttle_Group", 6, 1000, 1000, 2000, 20)
-		self.rules["Youtube"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
-		self.rules["Turbo"] = Rule("Youtube", 6, 1000, 1000, 2000, 2000)
 
 	def resetPCEF(self):
 		self.users.clear()
@@ -90,20 +84,26 @@ class PCEF:
 		self.users[UE.identity] = UE
 		UE.assignPCEF(self)
 
-	def forwardQuery(self, type, identity):
+	def createBaseQuery(self, action, identity, sessionid=None):
 		simQuery = {}
-		simQuery = {"action":type}
+		simQuery = {"action":action}
 		ue = self.users[identity]._asdict()
-		
+		if sessionid != None:
+			simQuery["sessionid"] = sessionid
 		simQuery.update(ue)
 		simQuery["rat"] = 1000 #request.args["rat"]
 		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-		print simQuery
+		return simQuery
 		return requests.get(self.simEndPoint(),params=simQuery)
 
+	def processCCMessages(self, ccr_cycle_list, cca_success, cca_failure, rar_request):
+		### TODO: refactor the processing of the CCR list answers to avoid repeating the code
+		pass
+
 	def createUESession(self, identity):
-		r = self.forwardQuery("Start", identity)
-	
+		simQuery = self.createBaseQuery(action="Start", identity=identity)
+		self.__firstUpdate = True
+		r = requests.get(self.simEndPoint(),params=simQuery)
 		simulator_ans = r.content
 		ccr_cycle_list = json.loads(simulator_ans)
 		session = None
@@ -111,26 +111,36 @@ class PCEF:
 		for ccr_cycle in ccr_cycle_list:
 			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
 				ccr_ans = ccr_cycle["Answer"]
-				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"],"PCEF", "PCRF", datetime.now(), ccr_cycle_list[0]["Request"]))
-				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans))
 				rules = RulesActions()
 				code = ccr_ans["Result_Code"]
 				if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 					session_id = ccr_ans["Session_Id"]
 					atHome = self.users[identity].isAtHome
-					session = Session(identity, session_id, {}, set(), atHome)
+					# Create a new session object and store it
+					session = Session(identity, session_id, {}, set(), atHome, None)
 					self.sessions[session_id] = session
 					self.users[identity].sessions.append(session)
-					print "Sessions:",self.users[identity].sessions
-					json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-					print "CCR Answer = ",json_pretty
+					#print "Sessions:",self.users[identity].sessions
 					
 					checkUsageMonitoringInfo(ccr_ans, session)
 					rules = checkChargingRuleName(ccr_ans)
+					checkQoSInfo(ccr_ans, session)
+
+					if len(rules.install)+len(rules.remove) > 0 or "QoS_Information" in ccr_ans:
+						self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"],"PCEF", "PCRF", datetime.now(), ccr_cycle_list[0]["Request"], "usage report"))
+						descr = "+"+",".join(rules.install)+"/-"+",".join(rules.remove)
+						if "QoS_Information" in ccr_ans:
+							descr+="/qos"
+						self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans, descr))
+						print "CCR Answer = ",json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
 					updateSession(session, rules)
+				else:
+					self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"],"PCEF", "PCRF", datetime.now(), ccr_cycle_list[0]["Request"], ""))
+					self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans, ""))
+					print "CCR Answer = ",json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
 			else:
-				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_cycle_list[0]["Request"]))
-				
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_cycle_list[0]["Request"], ""))
+				print "CC RAR = ",json.dumps(ccr_cycle["Request"], sort_keys = True, indent = 4, separators = (', ', ': '))
 
 		return (code, session, rules.asDict())
 
@@ -138,32 +148,20 @@ class PCEF:
 		
 		session = self.sessions[sessionid]
 		identity = session.identity
-		#return "Deleted"
-		#Update the usage for each key
-		simQuery={"action":"Stop"}
-		simQuery["sessionid"] = session.sessionId;
 		
-		print simQuery
-		
-		ue = self.users[identity]._asdict()
-		
-		print ue
-		simQuery.update(ue)
-		#TODO: These parameters should be stored in the sessions object
-		simQuery["rat"] = 1000 #request.args["rat"]
-		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-		
-		print simQuery
+		simQuery = self.createBaseQuery(action="Stop", identity=identity, sessionid = sessionid)		
 		r = requests.get(self.simEndPoint(),params=simQuery)
 	 	simulator_ans = r.content
+
 		ccr_cycle_list = json.loads(simulator_ans)
 		code = PCC.DIAMETER_SUCCESS		
 		for ccr_cycle in ccr_cycle_list:
+
 			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
 				ccr_ans = ccr_cycle["Answer"]
+				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"], "terminate"))
+				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans, ""))
 
-				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"]))
-				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"],"PCRF", "PCEF", datetime.now(), ccr_ans))
 				code = ccr_ans["Result_Code"]
 				if ccr_ans["Result_Code"] == PCC.DIAMETER_SUCCESS:
 					session_id = ccr_ans["Session_Id"]
@@ -177,7 +175,7 @@ class PCEF:
 					checkUsageMonitoringInfo(ccr_ans, session)
 					#checkChargingRuleName(ccr_ans, session)
 			else:
-				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"]))
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"], ""))
 				
 
 		return code
@@ -186,18 +184,18 @@ class PCEF:
 		session = self.sessions[sessionid]
 		identity = session.identity
 		atHome = int(request.form["isAtHome"])
-		print session, atHome
+		#print "Session",session, "AtHome:", atHome
 		if atHome != session.atHomeLocation:
 			self.sessions[sessionid] = session._replace(atHomeLocation = atHome)
 			session = self.sessions[sessionid]
-		print session
-		#Update the usage for each key
-		simQuery={"action":"Update"}
-		simQuery["sessionid"] = session.sessionId
+
+		#Create the base query 
+		simQuery = self.createBaseQuery(action="Update", identity=identity, sessionid=sessionid)
+		
 		simQuery["isAtHome"] = session.atHomeLocation
-		print request.form
+		# Add the usage keys and values to the query
 		for minfo in session.monitoringInfo.values():
-			print "minfo", minfo
+			#print "minfo", minfo
 			if minfo.key in request.form:
 				if request.form[minfo.key].isdigit():
 					newUsage = int(request.form[minfo.key])
@@ -208,17 +206,9 @@ class PCEF:
 					session.monitoringInfo[minfo.key] = minfo._replace(usage = minfo.usage+newUsage)
 					print "minfo=", session.monitoringInfo[minfo.key]
 		
-		print simQuery
 		
-		ue = self.users[identity]._asdict()
 		
-		print ue
-		simQuery.update(ue)
-		#TODO: These parameters should be stored in the sessions object
-		simQuery["rat"] = 1000 #request.args["rat"]
-		simQuery["calledStationId"] = "mc@mo.com" #request.args["calledStationId"]
-		
-		print simQuery
+		#print "Query:",simQuery
 		r = requests.get(self.simEndPoint(),params=simQuery)
 	 	simulator_ans = r.content
 		ccr_cycle_list = json.loads(simulator_ans)
@@ -230,26 +220,41 @@ class PCEF:
 			if "Answer" in ccr_cycle and ccr_cycle["Answer"] != None:
 
 				ccr_ans = ccr_cycle["Answer"]
-				self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"]))
-				self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_ans))
 				session_id = ccr_ans["Session_Id"]
 				
 				json_pretty = json.dumps(ccr_ans, sort_keys = True, indent = 4, separators = (', ', ': '))
-				print "RA=", json_pretty
+				
 				result_code = ccr_ans["Result_Code"] 
 				if result_code == PCC.DIAMETER_SUCCESS:
 				
 					checkUsageMonitoringInfo(ccr_ans, session)
-					rules.merge(checkChargingRuleName(ccr_ans))
+					checkQoSInfo(ccr_ans, session)
+					newRules = checkChargingRuleName(ccr_ans)
+					rules.merge(newRules)
+					if len(rules.install)+len(rules.remove) > 0 or "QoS_Information" in ccr_ans or self.__firstUpdate:
+						print "RA=", json_pretty
+
+						self.__firstUpdate = not self.__firstUpdate
+						descr = "+"+",".join(rules.install)+"/-"+",".join(rules.remove)
+						if "QoS_Information" in ccr_ans:
+							descr+="/qos"
+						self.messages.append(Message("CC", "R", ccr_cycle["Request"]["CC_Request_Type"], "PCEF", "PCRF", datetime.now(), ccr_cycle["Request"], "usage report"))
+						self.messages.append(Message("CC", "A", ccr_ans["CC_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_ans, descr))
+				
 			else:
 				# If the answer is nothing, then this is a RAR message, hence the info is in the request
 				ccr_req = ccr_cycle["Request"]
-				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"]))
+				
 				session_id = ccr_req["Session_Id"]
 			
-				json_pretty = json.dumps(ccr_req, sort_keys = True, indent = 4, separators = (', ', ': '))
-				print "RAR=", json_pretty
+				print "RAR=", json.dumps(ccr_req, sort_keys = True, indent = 4, separators = (', ', ': '))
+
 				rules.merge(checkChargingRuleName(ccr_req))
+				checkQoSInfo(ccr_req, session)
+				descr = "+"+",".join(rules.install)+"/-"+",".join(rules.remove)
+				if "QoS_Information" in ccr_req:
+					descr+="/qos"
+				self.messages.append(Message("RA", "R", ccr_cycle["Request"]["Re_Auth_Request_Type"], "PCRF", "PCEF", datetime.now(), ccr_cycle["Request"], descr))
 
 		updateSession(session, rules)
 
@@ -268,7 +273,7 @@ def updateSession(session, rules):
 def checkUsageMonitoringInfo(ccr_ans, session):
 	if "Usage_Monitoring_Information"  in ccr_ans:
 		for monitoring_info in ccr_ans["Usage_Monitoring_Information"]:
-			print ("MonInfo: " + str(monitoring_info))
+			#print ("MonInfo: " + str(monitoring_info))
 			mkey = baToStr(monitoring_info["Monitoring_Key"])
 			if not mkey in session.monitoringInfo:
 				session.monitoringInfo[mkey] = MonitoringInfo(mkey, len(session.monitoringInfo), "", 0,0,0)
@@ -276,7 +281,7 @@ def checkUsageMonitoringInfo(ccr_ans, session):
 			minfo = session.monitoringInfo[mkey]
 			
 			session.monitoringInfo[mkey] = minfo._replace(gsu = monitoring_info['Granted_Service_Unit'][0]['CC_Total_Octets'])
-			print "minfo=", session.monitoringInfo[mkey]
+			#print "minfo=", session.monitoringInfo[mkey]
 
 def checkChargingRuleName(ccr_ans):
 
@@ -294,6 +299,21 @@ def checkChargingRuleName(ccr_ans):
 					#session.installedRules.pop(index)
 	return rules
 
+def checkQoSInfo(ccr_ans, session):
+	mbr_ul = 9999999
+	mbr_dl = 9999999
+	gbr_ul = 9999999
+	gbr_dl = 9999999
+	qci = 0
+	if "QoS_Information" in ccr_ans:
+		for qosInfo in ccr_ans["QoS_Information"]:
+			mbr_ul = min(mbr_ul, qosInfo["Max_Requested_Bandwidth_UL"]);
+			mbr_dl = min(mbr_dl, qosInfo["Max_Requested_Bandwidth_DL"]);
+			gbr_ul = min(gbr_ul, qosInfo["Guaranteed_Bitrate_UL"]);
+			gbr_dl = min(gbr_dl, qosInfo["Guaranteed_Bitrate_DL"]);
+			qci = max(qci, qosInfo["QoS_Class_Identifier"]);
+		session.qosInfo = QoSInfo(name = "fromPCRF", MBR_UL = mbr_ul, MBR_DL = mbr_dl, GBR_UL = gbr_ul, GBR_DL = gbr_dl, qci = qci, ARP=0)
+	# If no QoS info is present, do not do anything. Whatever was set previously is kept
 
 def baToStr(byteArray):
 	return "".join([chr(c) for c in byteArray])

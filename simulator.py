@@ -4,11 +4,12 @@ import flask
 from flask import abort
 from flask import request
 import requests
-import json
+import simplejson as json
 import jinja2
 import datetime
 from dateutil import parser
 import collections
+from pcefDemoConst import MZ_ROOT, PCEF_PORT
 
 from pysimplesoap.client import SoapClient
 from UE import UE
@@ -18,13 +19,14 @@ import PCC
 
 app = Flask(__name__)
 
-MZ_ROOT = "http://192.168.56.101"
-PCEF_PORT = {1:"12008", 2:"12009"}
 
+# Dictionary of all users
 all_users = {}
 
+# Dictionary for the PCEF
 pcefs = {}
-rules = {}
+
+CC_MSG_TYPES={0:"Authorize Only", 1:"Initial", 2:"Update", 3:"Terminate"}
 allowed_actions = ["Start", "Stop", "Update", "Refresh", "Reset"]
 
 def initialize():
@@ -58,10 +60,10 @@ def usecase_provisioning(id = None):
 	#print id, func[id-1]
 	res = func[id-1](request.form)
 	if res == 0:
-		flask.flash("Subscription successfully created")
+		flask.flash("Subscription successfully created", "success")
 		
 	else:
-		flask.flash("Error"+str(res))
+		flask.flash("Error"+str(res), "warning")
 
 	return flask.redirect(request.referrer)
 
@@ -218,7 +220,7 @@ def monitor_ue_session_json(identity=None, sessionid = None):
 		abort(404)
 	buckets = getBuckets(identity)
 	session = sessions[sessionid]
-	return json.dumps(dict(session = dict(sessionid=session.sessionId,  monitoringInfo=session.monitoringInfo,rules=list(session.installedRules)), buckets = buckets, pcef = dict(id = pcef.id, rules = pcef.rules)))
+	return json.dumps(dict(session = dict(sessionid=session.sessionId, qosInfo=session.qosInfo, monitoringInfo=session.monitoringInfo, rules=list(session.installedRules)), buckets = buckets, pcef = dict(id = pcef.id, rules = pcef.staticRules)))
 
 
 # PCEF
@@ -235,7 +237,7 @@ def pcef(pcefid=None):
 	for identity in users:
 		userBuckets = getBuckets(identity)
 		buckets[identity] = userBuckets
-	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].rules.values(), pcef=pcefid)
+	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].staticRules.values(), pcef=pcefid)
 
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods=['GET'])
@@ -247,13 +249,18 @@ def monitor_pcef_session(pcefid=None,sessionid=None):
 
 @app.route("/pcef/<int:pcefid>/rules", methods=['GET'])
 def pcef_list_rules(pcefid=None):
-	return render_template("pcef_list_rules.html", rules = pcefs[pcefid].rules)
+
+	return render_template("pcef_list_rules.html", rules = pcefs[pcefid].staticRules)
+
+@app.route("/pcef/<int:pcefid>/rules/json", methods=['GET'])
+def pcef_list_rules_json(pcefid=None):
+	return json.dumps(pcefs[pcefid].staticRules)
 
 @app.route("/pcef/<int:pcefid>/rule/<ruleid>", methods = ['GET'])
 def pcef_rule(ruleid = None, pcefid=None):
-	if not ruleid in pcefs[pcefid].rules:
+	if not ruleid in pcefs[pcefid].staticRules:
 		abort(404)
-	return render_template("pcef_rule.html", rule = pcefs[pcefid].rules[ruleid]._asdict())
+	return render_template("pcef_rule.html", rule = pcefs[pcefid].staticrRules[ruleid]._asdict())
 
 @app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
 def pcef_list_sessions(pcefid=None):
@@ -277,15 +284,14 @@ def pcef_delete_session(pcefid=None,sessionid = None):
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
 def pcef_report_session_usage(sessionid = None, pcefid=None):
-	print sessionid, pcefid
 	if not sessionid in pcefs[pcefid].sessions:
 		print sessionid, pcefs[pcefid].sessions.keys()
 		abort(404)
-	print request.form
+	#print request.form
 	res = pcefs[pcefid].reportSessionUsage(sessionid, request)
 	if (res[0] != PCC.DIAMETER_SUCCESS):
 		code = res[0]
-		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description)
+		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description, "warning")
 	else:
 		notifyRules(res[1])
 		#return flask.redirect("/pcef/"+str(pcefid)+"/sessions/"+sessionid)
@@ -294,22 +300,25 @@ def pcef_report_session_usage(sessionid = None, pcefid=None):
 	
 	return render_template("session.html", session = session, buckets = buckets, pcef = pcefs[pcefid])
 
+
 @app.route("/pcef/<int:pcefid>/sessions/json/<sessionid>", methods = ["POST"])
 def pcef_report_session_usage_json(sessionid = None, pcefid=None):
 	if not sessionid in pcefs[pcefid].sessions:
 		abort(404)
 
 	res = pcefs[pcefid].reportSessionUsage(sessionid, request)
-	if (res[0] != PCC.DIAMETER_SUCCESS):
-		code = res[0]
-		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description)
-	else:
-		notifyRules(res[1])
-		#return flask.redirect("/pcef/"+str(pcefid)+"/sessions/"+sessionid)
+	code = res[0]
+	rulesactions = res[1]
+	msg="OK"
+	if (code != PCC.DIAMETER_SUCCESS):
+		msg = "Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description
+	
 	session = pcefs[pcefid].sessions[sessionid]
 	buckets = getBuckets(session.identity)
 	pcef = pcefs[pcefid]
-	return json.dumps(dict(session = dict(sessionid=session.sessionId, monitoringInfo=session.monitoringInfo, rules=list(session.installedRules)), buckets = buckets, pcef = dict(id = pcef.id, rules = pcef.rules)))
+	return json.dumps(dict(result=dict(code=code, msg=msg), rulesactions=rulesactions, session = dict(sessionid=session.sessionId, qosInfo=session.qosInfo, 
+		monitoringInfo=session.monitoringInfo, rules=list(session.installedRules)), buckets = buckets, 
+	pcef = dict(id = pcef.id, staticRules = pcef.staticRules)))
 
 @app.route("/pcef/<int:pcefid>/messages", methods=["GET"])
 def pcef_messages(pcefid = None):
@@ -327,11 +336,10 @@ def getJumlyScript(messages):
 		if count > 50: 
 			return script
 		if m.type == "A":
-			script += ', -> @reply "{0}{1}({2})"'.format(m.name, m.type, m.subtype)
-			current_from = None
-			current_to = None
+			script += ', -> @reply "{0}{1}({2}) # {3}"'.format(m.name, m.type, CC_MSG_TYPES[m.subtype], m.descr)
 		else:
-			script += '\n@found "{0}", -> @message "{1}{2}({3})", "{4}"'.format(m.fr, m.name, m.type, m.subtype, m.to)
+			script += '\n@found "{0}", -> @message "{1}{2}({3}) # {5}", "{4}"'.format(m.fr, m.name, m.type, CC_MSG_TYPES[m.subtype], m.to, m.descr)
+
 	return script
 
 
@@ -339,7 +347,7 @@ def notifyRules(rules):
 	return #this is to avoid the flashing of rules with the new java script UI
 	for k in rules.keys():
 			for r in rules[k]:
-				flask.flash("Rules to "+k+" "+r)
+				flask.flash("Rules to "+k+" "+r, "success")
 
 def getBuckets(identity):
 	simQuery={"action":"Refresh", "identity":identity}
@@ -348,7 +356,7 @@ def getBuckets(identity):
 	simulator_ans = r.content
 	buckets = json.loads(simulator_ans)
 	json_pretty = json.dumps(buckets, sort_keys = True, indent = 4, separators = (', ', ': '))
-	print "Buckets=", json_pretty
+	#print "Buckets=", json_pretty
 	return buckets
 
 @app.route("/bdh", methods=["GET"])

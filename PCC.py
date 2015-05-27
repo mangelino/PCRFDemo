@@ -8,7 +8,6 @@ QoSInfo = namedtuple("QoSInfo", "name qci MBR_UL MBR_DL GBR_UL GBR_DL ARP")
 FlowInfo = namedtuple("FlowInfo", "SDF_Description")
 SDFTemplate = namedtuple("SDFTemplate", "name precedence dst dstPort src srcPort protocol")
 MonitoringInfo = namedtuple("MonitoringInfo", "key intKey productName gsu usu usage")
-Session = namedtuple("Session", "identity sessionId monitoringInfo installedRules atHomeLocation")
 
 DiameterError = namedtuple("DiamaterError", "id code description")
 diameterErrors = {}
@@ -84,3 +83,15 @@ class RulesActions:
 
 	def asDict(self):
 		return {"install":list(self.install), "remove":list(self.remove)}
+
+
+class Session:
+	def __init__(self, identity, sessionId, monitoringInfo, installedRules, atHomeLocation, qosInfo):
+		self.identity = identity
+		self.sessionId = sessionId
+		self.monitoringInfo = monitoringInfo
+		self.installedRules = installedRules
+		self.atHomeLocation = atHomeLocation
+		self.qosInfo = qosInfo
+
+	Session = namedtuple("Session", "identity sessionId monitoringInfo installedRules atHomeLocation qosInfo")

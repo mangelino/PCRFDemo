@@ -40,13 +40,13 @@
           <ul class="nav navbar-nav">
             <li><a href="#">About Us</a></li>
             <li><a href="#">Sign Up</a></li>
-            <li><a href="#">My Star Pages</a></li>
-            <li><a href="#">My Overview</a></li>
+            <li><a href="/starmobile/{{ue.identity}}">My Star Pages</a></li>
+            <li><a href="/starmobile/{{ue.identity}}">My Overview</a></li>
             
           </ul>
           <ul class="nav navbar-nav navbar-right">
 
-            <li role="presentation" class="active"><a  href="/ue/{{ue.identity}}"><span style="font-size: 14px; padding: 4px 4px 4px 8px; background: rgb(40, 171, 226); border-radius: 10px;">{{ue.name}}<span class="badge" style="margin-left:8px">{{buckets|count}}</span></span></a>
+            <li role="presentation" class="active"><a  href="/ue/{{ue.identity}}" target="_blank"><span style="font-size: 14px; padding: 4px 4px 4px 8px; background: rgb(40, 171, 226); border-radius: 10px;">{{ue.name}}<span class="badge" style="margin-left:8px">{{buckets|count}}</span></span></a>
             </li>
                            
  
@@ -56,10 +56,10 @@
     </nav>
 
     <div class="container" style="padding-top:75px;">
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-info" role="alert">
+                {% for category, message in messages %}
+                <div class="alert alert-{{category}}" role="alert">
                  {{ message}}
                  </div>
                 {% endfor %}

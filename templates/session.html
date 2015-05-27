@@ -9,284 +9,35 @@
 	visibility: hidden;
 }
 </style>
-<script type="text/javascript">
-	var intervalId = [];
-	var consChart = [];
-	var bwChart = [];
-	var consDps = [];
-	var bwDps = []; // dataPoints
-	var consumed = [];
-	var tempConsumed = [];
-	var MAXSTOP = 999999999;
-	var AVGBW = 500;
-	var THROTTLE = [];
 
-	{% for minfo in session.monitoringInfo.values() %}
-		consDps["{{minfo.key}}"] = [];
-		bwDps["{{minfo.key}}"] = [];
-		THROTTLE["{{minfo.key}}"] = 999999999;
-	{% endfor %}
-
-	window.onload = function() {
-		{% for minfo in session.monitoringInfo.values() %}
-		consChart["{{minfo.key}}"] = new CanvasJS.Chart("consumption_{{minfo.key}}",{
-			title :{
-				text: "Data consumption"
-			},			
-			data: [{
-				type: "line",
-				dataPoints: consDps["{{minfo.key}}"]
-			}]
-		});
-
-		bwChart["{{minfo.key}}"] = new CanvasJS.Chart("bandwidth_{{minfo.key}}",{
-			title :{
-				text: "Bandwidth"
-			},			
-			data: [{
-				type: "line",
-				dataPoints: bwDps["{{minfo.key}}"]
-			}]
-		});
-		{% endfor %}
-	}
-
-
-	var xVal = [];
-	var stopX = MAXSTOP;	
-	var averageBw = 200;
-	var updateInterval = 20;
-	var dataLength = 500; // number of dataPoints visible at any point
-
-	function updateChart (count, bw, monitoringKey) {
-		var yVal;
-		count = count || 1;
-		// count is number of times loop runs to generate random dataPoints.
-		var delta= Math.round(bw/5 + Math.random() *(-bw));
-		if (xVal[monitoringKey] === undefined) {
-			xVal[monitoringKey] = 0;
-		}
-		if (consDps[monitoringKey] === undefined) {
-			consDps[monitoringKey] = [];
-		}
-
-		if (bwDps[monitoringKey] === undefined) {
-			bwDps[monitoringKey] = [];
-		}
-
-		if (tempConsumed[monitoringKey] === undefined) {
-			tempConsumed[monitoringKey] = 0;
-		}
-
-		if (consumed[monitoringKey] === undefined) {
-			consumed[monitoringKey] = 0;
-		}
-		for (var j = 0; j < count; j++) {	
-			yVal = bw +  delta;
-			//if (consumed > 500000) {
-				if (yVal > THROTTLE[monitoringKey]) {
-					yVal = THROTTLE[monitoringKey];
-
-				}
-			// 	if (stopX == MAXSTOP) {
-			// 		stopX = xVal;
-			// 	}
-			// }
-			if (yVal<0) {
-				yVal = 0;
-			}
-			bwDps[monitoringKey].push({
-				x: xVal[monitoringKey],
-				y: yVal
-			});
-
-			consumed[monitoringKey] = consumed[monitoringKey] + yVal;
-			tempConsumed[monitoringKey] = tempConsumed[monitoringKey] + yVal;
-			consDps[monitoringKey].push({
-				x: xVal[monitoringKey],
-				y: consumed[monitoringKey]
-			});
-
-			xVal[monitoringKey]++;
-
-		};
-		if (bwDps[monitoringKey].length > dataLength)
-		{
-			bwDps[monitoringKey].shift();
-		}
-
-		if (consDps[monitoringKey].length > dataLength)
-		{
-			consDps[monitoringKey].shift();
-		}
-		consChart[monitoringKey].render();
-		bwChart[monitoringKey].render();
-
-		if (tempConsumed[monitoringKey] > 4100) {
-			submitFormPredefined(monitoringKey,tempConsumed[monitoringKey], monitoringKey);
-			tempConsumed[monitoringKey] = 0;
-		}
-	};
-	
-
-	function start(key) {
-		stopX = MAXSTOP;
-		$("#usageTable_"+key).hide();
-		if (intervalId[key]) {
-			clearInterval(intervalId[key]);
-		}
-		// generates first set of dataPoints
-		updateChart(dataLength,0, key);
-		//consumed = 0;
-
-		// update chart after specified time. 
-		intervalId[key] = setInterval(function(){updateChart(1, AVGBW, key);}, updateInterval);
-	}
-
-	function stop(key) {
-		// update chart after specified time. 
-		if (intervalId[key]) {
-			clearInterval(intervalId[key]);
-		}
-		$("#usageTable_"+key).show();
-	}
-
-	function pause(key) {
-		if (intervalId[key]) {
-			clearInterval(intervalId[key]);
-			intervalId[key] = null;
-			$("#usageTable_"+key).show();
-		} else {
-			$("#usageTable_"+key).hide();
-			intervalId[key] = setInterval(function(){updateChart(1, AVGBW, key);}, updateInterval);
-		}
-		
-	}
-
-	function submitFormPredefined(elem_id, bytes, key)
-	{
-		document.getElementById(elem_id).value = bytes; 
-		var postData = $("#sessionForm").serializeArray();
-    	var formURL = $("#sessionForm").attr("altaction");
-		$.ajax(
-			    {
-			        url : formURL,
-			        type: "POST",
-			        data : postData,
-			        success:function(data, textStatus, jqXHR) 
-			        {
-						document.getElementById(elem_id).value = "";
-			        	var jsondata = JSON.parse(data);
-			            //alert(data);//data: return data from server
-			            bucketRows = "";
-			            for (var j = 0; j < jsondata.buckets.length; j++) {
-			            	//$("#bucket_"+jsondata.buckets[j].id).html(getReadableFileSizeString(jsondata.buckets[j].counters.tot));
-			            	bucketRows += generateBucketRow(jsondata.buckets[j]);
-
-			            }
-			            $("#bucketsTable tbody").html(bucketRows);
-			            for (var minfo in jsondata.session.monitoringInfo) {
-			            	$("#mkey_"+minfo).html(getReadableFileSizeString(jsondata.session.monitoringInfo[minfo][3]));
-
-			            }
-			            var rules = jsondata.session.rules;
-			            rulesHtml = "";
-			            THROTTLE[key] = 999999999;
-			            for (var j=0; j<rules.length; j++) {
-			            	THROTTLE[key] = Math.min(jsondata.pcef.rules[rules[j]][5], THROTTLE[key]);
-			            	rulesHtml += '<span class="label label-primary">'+rules[j]+'</span>'
-			            }
-						// Hack to only throttle the unspecified data flow
-						if (key != "Data") {
-							THROTTLE[key] = 99999999;
-						}
-			            $("#rules").html(rulesHtml);
-
-			        },
-			        error: function(jqXHR, textStatus, errorThrown) 
-			        {
-			            //if fails      
-			        }
-			    });
-		//document.getElementById(elem_id).value = bytes; 
-		//document.getElementById('sessionForm').submit();
-	}
-
-	function generateBucketRow(bucket)
-	{
-		c = "";
-		if (checkValidity(bucket.stopTime)) {
-			c += '<tr>\n';
-			c += "<td>"+bucket.id+"</td>";
-			c += "<td>"+bucket.name+"</td>";
-			// c += "<td>"+bucket.startTime+"</td>";
-			// c += "<td>"+bucket.stopTime+"</td>";
-			c += "<td>"+getReadableFileSizeString(bucket.counters.tot)+"</td>";
-			c += "</tr>";
-		}
-		return c;
-	}
-
-	function checkValidity(time)
-	{
-		var now = new Date();
-		if (Date.parse(time)<now.setSeconds(now.getSeconds()-60)) {
-			return false;
-		} else {
-			return true;
-		}
-	}
-
-	function getReadableFileSizeString(fileSizeInBytes) {
-
-	    var i = -1;
-	    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
-	    do {
-	        fileSizeInBytes = fileSizeInBytes / 1024;
-	        i++;
-	    } while (fileSizeInBytes > 1024);
-
-	    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-	};
-
-	function toggleLiveTraffic(key) {
-		$("#expandicon_"+key).toggleClass("glyphicon-expand glyphicon-collapse-up");
-		$("#livetraffic_"+key).toggleClass("hidden");
-	};
-
-	</script>
-	<script type="text/javascript" src="/assets/script/canvasjs.min.js"></script>
+<script type="text/javascript" src="/assets/script/canvasjs.min.js"></script>
+<script type="text/javascript" src="/assets/script/pnotify.custom.min.js"></script>
+<link rel="stylesheet" href="/assets/styles/pnotify.custom.min.css">
 {% endblock %}
 {% block content %}
-
-<div class="container">
-
-	<div class="row">
+{% set keyHeader = "Monitoring Key" %}
+<div class="container" id="screen-session">
+	
 		{% for minfo in session.monitoringInfo.values() %}
 			<div class="panel panel-default">
-			<div class="panel-heading">
-				<h3 class="panel-title"><span class="glyphicon glyphicon-expand" id="expandicon" aria-hidden="true" style="padding-right: 10px;" onclick='toggleLiveTraffic("{{minfo.key}}");'></span>{{minfo.key}}</h3>
-			</div>
-			<div class="panel-body hidden" id="livetraffic_{{minfo.key}}">
+				<div class="panel-heading" onclick='toggleLiveTraffic("{{minfo.key}}");' style="cursor: hand;">
+					<h3 class="panel-title"><span class="glyphicon glyphicon-stats" id="expandicon" aria-hidden="true" style="padding-right: 10px;" ></span>{{keyHeader + ": " + minfo.key}}</h3>
+				</div>
+				<div class="panel-body hidden" id="livetraffic_{{minfo.key}}">
 
-				<div class="row">
-					<div class="col-sm-12">
-						<button onclick='start("{{minfo.key}}");' value="Start" class="btn btn-sm btn-default">Start</button>
-						<button onclick='stop("{{minfo.key}}");' value="Stop" class="btn btn-sm btn-default">Stop</button>
-						<button onclick='pause("{{minfo.key}}");' value="Pause" class="btn btn-sm btn-default">Pause/Play</button>
+					<div class="row">
+						<div class="col-md-2">
+							<!-- <button onclick='start("{{minfo.key}}");' value="Start" class="btn btn-sm btn-default"><span class="glyphicon glyphicon-stats"></span></button><br>
+							<button onclick='stop("{{minfo.key}}");' value="Stop" class="btn btn-sm btn-default"><span class="glyphicon glyphicon-stop"></span></button><br> -->
+							<button onclick='pause("{{minfo.key}}");' value="Pause" class="btn btn-sm btn-default"><span class="glyphicon glyphicon-play" id="{{minfo.key}}-pause" ></button>
+						</div>
+						<div class="col-md-4" id="consumption_{{minfo.key}}" style="height: 200px;"></div>
+						<div class="col-md-4" id="bandwidth_{{minfo.key}}" style="height: 200px;"></div>
 					</div>
 				</div>
-				<div class="row" style="padding: 20px;">
-					<div class="col-md-6" id="consumption_{{minfo.key}}" style="height: 150px;">
-					</div>
-					<div class="col-md-6" id="bandwidth_{{minfo.key}}" style="height: 150px;">
-					</div>
-				</div>
-
 			</div>
-		</div>
 		{% endfor %}
-	</div>
+	
 	<form id="sessionForm" action="/pcef/{{pcef.id}}/sessions/{{session.sessionId}}" altaction="/pcef/{{pcef.id}}/sessions/json/{{session.sessionId}}" method="post">
 
 	<div id="usageWell" class="well">
@@ -298,7 +49,7 @@
 				<table class="table table-condensed" >
 					<thead>
 						<tr>
-							<th class="col-sm-1">Rating Key</th>
+							<th class="col-sm-1">{{ keyHeader }}</th>
 							<th class="col-sm-1">Used</th>
 							<th class="col-sm-1">Granted</th>
 							<th class="col-sm-1">New usage</th>
@@ -309,26 +60,22 @@
 					{% for minfo in session.monitoringInfo.values() %}
 							<tr id="usageTable_{{minfo.key}}">
 								<td> {{ minfo.key}} </td>
-								<td> {{ minfo.usage|filesizeformat}} </td>
-								<td><span id="mkey_{{minfo.key}}"> {{ minfo.gsu|filesizeformat}} </span></td>
+								<td><span id="usu_{{minfo.key}}">{{ minfo.usage|filesizeformat}}</span></td>
+								<td><span id="gsu_{{minfo.key}}">{{ minfo.gsu|filesizeformat}}</span></td>
 								<td><input id="{{minfo.key}}" type="text" class="form-control" placeholder="kB" name="{{minfo.key}}"></td>
-								<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 140);'>
-								<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 2000);'>
-								<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 300000);'>
-								<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 1000000);'></td>
+								<td><img src="/assets/images/twitter.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 0.140);'>
+								<img src="/assets/images/facebook.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 20);'>
+								<img src="/assets/images/youtube.png" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 3000);'>
+								<img src="/assets/images/netflix.jpeg" width="20px" height="20px" onclick='submitFormPredefined("{{minfo.key}}", 30000);'></td>
 							</tr>
 					{% endfor %}
 					</tbody>
 				</table>
 			</div>
 			<div class="col-md-2">
-				<input type="submit" class="btn btn-success" value="Report usage">
+				<input type="submit" class="hidden" value="Report usage">
 			</div>
-
 		</div>
-
-
-
 	</div>
 
 
@@ -384,6 +131,9 @@
 				<td>Session Id</td><td> {{session.sessionId}} </td>
 			</tr> -->
 			<tr>
+				<td>Session MBR DL</td><td id="qosInfo">{% if session.qosInfo %} {{session.qosInfo.MBR_DL}} {% else %}Not set, using Rule QoS{% endif %}</td>
+			</tr>
+			<tr>
 				<td>UE Identity</td><td><a href="/ue/{{session.identity}}"> {{session.identity}} </a></td>
 			</tr>
 			<tr>
@@ -410,6 +160,317 @@
 	</form>
 	</div>
 
+<script type="text/javascript">
+	var intervalId = [];
+	var consChart = [];
+	var bwChart = [];
+	var consDps = [];
+	var bwDps = []; // dataPoints
+	var consumed = [];
+	var tempConsumed = [];
+	var MAXSTOP = 999999999;
+	var AVGBW = 500000;
+	var THROTTLE = [];
+	var REPORT_THRESHOLD = [];
+	var pcefRules;
 
+	
+
+	// Lookup dictionary for the mapping between PCC Rules and monitoringKey
+	var minfoKeys = [];
+	minfoKeys["Data"] = "1";
+	minfoKeys["Turbo"] = "1";
+	minfoKeys["Throttle"] = "1";
+	minfoKeys["Throttle_Group"] = "1";
+	minfoKeys["Youtube"] = "2";
+	minfoKeys["SportVOD"] = "3";
+
+	{% for minfo in session.monitoringInfo.values() %}
+	consDps["{{minfo.key}}"] = [];
+	bwDps["{{minfo.key}}"] = [];
+	THROTTLE["{{minfo.key}}"] = 999999999;
+	REPORT_THRESHOLD["{{minfo.key}}"] = {{minfo.gsu}};
+	consumed["{{minfo.key}}"] = {{minfo.usage}};
+	{% endfor %}
+
+	window.onload = function() {
+		{% for minfo in session.monitoringInfo.values() %}
+		consChart["{{minfo.key}}"] = new CanvasJS.Chart("consumption_{{minfo.key}}",{
+			title :{
+				text: "Data consumption"
+			},			
+			data: [{
+				type: "line",
+				dataPoints: consDps["{{minfo.key}}"]
+			}]
+		});
+
+		bwChart["{{minfo.key}}"] = new CanvasJS.Chart("bandwidth_{{minfo.key}}",{
+			title :{
+				text: "Bandwidth"
+			},			
+			data: [{
+				type: "line",
+				dataPoints: bwDps["{{minfo.key}}"]
+			}]
+		});
+		{% endfor %}
+
+		$.ajax(
+			    {
+			        url : "/pcef/{{pcef.id}}/rules/json",
+			        type: "GET",
+			        data : null,
+			        success:function(data, textStatus, jqXHR) 
+			        {
+			        	pcefRules = JSON.parse(data);
+			        },
+			        error: function(jqXHR, textStatus, errorThrown) 
+			        {
+			            alert(textStatus);      
+			        }
+			    });
+
+
+	}
+
+
+
+	var xVal = [];
+	var stopX = MAXSTOP;	
+	var averageBw = 2000;
+	var updateInterval = 20;
+	var dataLength = 500; // number of dataPoints visible at any point
+
+	function updateChart (count, bw, monitoringKey) {
+		var yVal;
+		count = count || 1;
+		// count is number of times loop runs to generate random dataPoints.
+		var delta= Math.round(bw/5 + Math.random() *(-bw));
+		if (xVal[monitoringKey] === undefined) {
+			xVal[monitoringKey] = 0;
+		}
+		if (consDps[monitoringKey] === undefined) {
+			consDps[monitoringKey] = [];
+		}
+
+		if (bwDps[monitoringKey] === undefined) {
+			bwDps[monitoringKey] = [];
+		}
+
+		if (tempConsumed[monitoringKey] === undefined) {
+			tempConsumed[monitoringKey] = 0;
+		}
+
+		if (consumed[monitoringKey] === undefined) {
+			consumed[monitoringKey] = 0;
+		}
+		for (var j = 0; j < count; j++) {	
+			yVal = bw +  delta;
+
+			if (yVal > THROTTLE[monitoringKey]) {
+				yVal = THROTTLE[monitoringKey];
+
+			}
+
+			if (yVal<0) {
+				yVal = 0;
+			}
+			bwDps[monitoringKey].push({
+				x: xVal[monitoringKey],
+				y: yVal
+			});
+
+			consumed[monitoringKey] = consumed[monitoringKey] + yVal;
+			tempConsumed[monitoringKey] = tempConsumed[monitoringKey] + yVal;
+			consDps[monitoringKey].push({
+				x: xVal[monitoringKey],
+				y: consumed[monitoringKey]
+			});
+
+			xVal[monitoringKey]++;
+
+		};
+		if (bwDps[monitoringKey].length > dataLength)
+		{
+			bwDps[monitoringKey].shift();
+		}
+
+		if (consDps[monitoringKey].length > dataLength)
+		{
+			consDps[monitoringKey].shift();
+		}
+		consChart[monitoringKey].render();
+		bwChart[monitoringKey].render();
+
+		if (tempConsumed[monitoringKey] > REPORT_THRESHOLD[monitoringKey]) {
+			submitFormPredefined(monitoringKey,tempConsumed[monitoringKey]/1000, monitoringKey);
+			tempConsumed[monitoringKey] = 0;
+		}
+	};
+	
+
+	function start(key) {
+		if (intervalId[key]) {
+			return;
+			//clearInterval(intervalId[key]);
+		}
+		stopX = MAXSTOP;
+		$("#usageTable_"+key).hide();		
+		// generates first set of dataPoints
+		//updateChart(dataLength,0, key);
+		//consumed = 0;
+
+		// update chart after specified time. 
+		intervalId[key] = setInterval(function(){updateChart(1, AVGBW, key);}, updateInterval);
+	}
+
+	function stop(key) {
+		// update chart after specified time. 
+		if (intervalId[key]) {
+			clearInterval(intervalId[key]);
+			intervalId[key] = null;
+		}
+		$("#usageTable_"+key).show();
+	}
+
+	function pause(key) {
+		if (intervalId[key] && intervalId[key]>0) {
+			clearInterval(intervalId[key]);
+			intervalId[key] = -1;
+			$("#usageTable_"+key).show();
+
+		} else {
+			$("#usageTable_"+key).hide();
+			intervalId[key] = setInterval(function(){updateChart(1, AVGBW, key);}, updateInterval);
+		}
+		$("#"+key+"-pause").toggleClass("glyphicon-pause glyphicon-play");
+	}
+
+	function submitFormPredefined(elem_id, kbytes, key)
+	{
+		document.getElementById(elem_id).value = kbytes*1000; 
+		var postData = $("#sessionForm").serializeArray();
+    	var formURL = $("#sessionForm").attr("altaction");
+		$.ajax(
+			    {
+			        url : formURL,
+			        type: "POST",
+			        data : postData,
+			        success:function(data, textStatus, jqXHR) 
+			        {
+						document.getElementById(elem_id).value = "";
+			        	var jsondata = JSON.parse(data);
+			            //alert(data);//data: return data from server
+			            if (jsondata.result.code != 2001) {
+			            	alert(jsondata.result.msg);
+			            	return;
+			            }
+			            if (jsondata.rulesactions !== undefined)
+			            {
+			            	for (var i in jsondata.rulesactions.install) {
+			            		new PNotify({
+								   title: "Install Rule",
+								   text: jsondata.rulesactions.install[i],
+								   type: 'success'
+								});
+			            	}
+			            	for (var i in jsondata.rulesactions.remove) {
+			            		new PNotify({
+								   title: "Remove Rule",
+								   text: jsondata.rulesactions.remove[i],
+								   type: 'info'
+								});
+			            	}
+			            }
+
+			            bucketRows = "";
+			            for (var j = 0; j < jsondata.buckets.length; j++) {
+			            	//$("#bucket_"+jsondata.buckets[j].id).html(getReadableFileSizeString(jsondata.buckets[j].counters.tot));
+			            	bucketRows += generateBucketRow(jsondata.buckets[j]);
+
+			            }
+			            $("#bucketsTable tbody").html(bucketRows);
+			            for (var minfoKey in jsondata.session.monitoringInfo) {
+			            	
+			            	consumed[minfoKey]=jsondata.session.monitoringInfo[minfoKey].usage;
+
+			            	$("#gsu_"+minfoKey).html(getReadableFileSizeString(jsondata.session.monitoringInfo[minfoKey].gsu));
+			            	$("#usu_"+minfoKey).html(getReadableFileSizeString(consumed[minfoKey]));
+			            	REPORT_THRESHOLD[minfoKey] = jsondata.session.monitoringInfo[minfoKey].gsu
+
+			            }
+			            var rules = jsondata.session.rules;
+			            rulesHtml = "";
+			            for (var j=0; j<rules.length; j++) {
+			            	THROTTLE[minfoKeys[rules[j]]]=9999999999;
+			        	}
+			            for (var j=0; j<rules.length; j++) {
+			            	rulesHtml += '<span class="label label-primary">'+rules[j]+'</span>'
+			            	// This is an hack. The usage is monitored on the monitoringInfoKey, but the 
+			            	// QoS is set on the PCC Rule, and there is no guarantee that they will apply to the
+			            	// same traffic. In the demo we want to show that the QoS is applied to the traffic
+			            	// matching the monitporing key, which is what we show in the Real Time graphs
+			            	if (jsondata.session.qosInfo != null) {
+				            	THROTTLE[minfoKeys[rules[j]]] = jsondata.session.qosInfo.MBR_DL;
+				            	$("#qosInfo").html(jsondata.session.qosInfo.MBR_DL);
+				            } else {
+				            	THROTTLE[minfoKeys[rules[j]]] = Math.min(THROTTLE[minfoKeys[rules[j]]], jsondata.pcef.staticRules[rules[j]].qosInfo.MBR_DL);
+				            	$("#qosInfo").html("Not set, using Rule QoS");
+				            } 
+			            }
+
+			            $("#rules").html(rulesHtml);
+
+			        },
+			        error: function(jqXHR, textStatus, errorThrown) 
+			        {
+			            //if fails      
+			        }
+			    });
+	}
+
+	function generateBucketRow(bucket)
+	{
+		c = "";
+		if (checkValidity(bucket.stopTime)) {
+			c += '<tr>\n';
+			c += "<td>"+bucket.id+"</td>";
+			c += "<td>"+bucket.name+"</td>";
+			// c += "<td>"+bucket.startTime+"</td>";
+			// c += "<td>"+bucket.stopTime+"</td>";
+			c += "<td>"+getReadableFileSizeString(bucket.counters.tot)+"</td>";
+			c += "</tr>";
+		}
+		return c;
+	}
+
+	function checkValidity(time)
+	{
+		var now = new Date();
+		if (Date.parse(time)<now.setSeconds(now.getSeconds()-60)) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	function getReadableFileSizeString(fileSizeInBytes) {
+
+	    var i = -1;
+	    var byteUnits = [' kB', ' MB', ' GB', ' TB', ' PB', ' EB', ' ZB', ' YB'];
+	    do {
+	        fileSizeInBytes = fileSizeInBytes / 1000;
+	        i++;
+	    } while (fileSizeInBytes > 1000);
+
+	    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
+	};
+
+	function toggleLiveTraffic(key) {
+		$("#expandicon_"+key).toggleClass("glyphicon-expand glyphicon-collapse-up");
+		$("#livetraffic_"+key).toggleClass("hidden");
+	};
+</script>
 
 {% endblock %}
