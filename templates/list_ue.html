@@ -25,11 +25,15 @@
     z-index:2;
 }
 </style>
-
 {% endblock %}
-{% block content %}
 
-  
+{% block bcrumb %}
+<ol class="breadcrumb">
+<li class="active">UE</li>
+</ol>
+{% endblock %}
+
+{% block content %}  
 <div class="row">
  {%for ue in ues %}
   	<div class="col-sm-6 col-sm-4">

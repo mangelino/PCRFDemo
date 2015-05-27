@@ -240,7 +240,6 @@ def pcef(pcefid=None):
 		buckets[identity] = userBuckets
 	return render_template('pcef.html', buckets=buckets,sessions=sessions.values(), users=users.values(), rules=pcefs[pcefid].staticRules.values(), pcef=pcefid)
 
-
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods=['GET'])
 def monitor_pcef_session(pcefid=None,sessionid=None):
 	sessions = pcefs[pcefid].sessions
@@ -248,11 +247,6 @@ def monitor_pcef_session(pcefid=None,sessionid=None):
 		flask.flash("Session not found","warning")
 		return flask.redirect(request.referrer)	
 	return render_template("session.html", pcefid = pcefid, session = sessions[sessionid])
-
-@app.route("/pcef/<int:pcefid>/rules", methods=['GET'])
-def pcef_list_rules(pcefid=None):
-
-	return render_template("pcef_list_rules.html", rules = pcefs[pcefid].staticRules)
 
 @app.route("/pcef/<int:pcefid>/rules/json", methods=['GET'])
 def pcef_list_rules_json(pcefid=None):
@@ -262,7 +256,7 @@ def pcef_list_rules_json(pcefid=None):
 def pcef_rule(ruleid = None, pcefid=None):
 	if not ruleid in pcefs[pcefid].staticRules:
 		abort(404)
-	return render_template("pcef_rule.html", rule = pcefs[pcefid].staticrRules[ruleid]._asdict())
+	return render_template("pcef_rule.html", rule = pcefs[pcefid].staticRules[ruleid]._asdict(), pcef=pcefid)
 
 @app.route("/pcef/<int:pcefid>/sessions", methods = ["GET"])
 def pcef_list_sessions(pcefid=None):
@@ -335,7 +329,7 @@ def pcef_messages(pcefid = None):
 		abort(404)
 	pcef = pcefs[pcefid]
 	jumly = getJumlyScript(pcef.messages)
-	return render_template("messages.html", jumly = jumly)
+	return render_template("messages.html", jumly = jumly, pcef=pcefid)
 
 def getJumlyScript(messages):
 	script = ""
@@ -461,7 +455,7 @@ def createDefaultUsersAndRegister():
 	print "Initializing default values..."
 
 	users = {}
-	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", "John")
+	users["460001"] = UE("460001", "IMSI", "Samsung Galaxy S4", "IMEISV", "Maria")
 	users["460002"] = UE("460002", "IMSI", "iPhone 5S", "IMEISV", "Lisa")
 	users["460003"] = UE("460003", "IMSI", "LG G3", "IMEISV", "Tim")
 	users["460004"] = UE("460004", "IMSI", "Sony Xperia", "IMEISV", "Jennifer")

@@ -5,7 +5,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-
+    <link rel="shortcut" href="/assets/images/digitalroute-icon.png" type="image/png">
+    <link rel="icon" href="/assets/images/digitalroute-icon.png" type="image/png">
     {% block head %}
         <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="/assets/bootstrap-3.3.4/css/bootstrap.min.css">
@@ -53,6 +54,9 @@
         </div><!--/.nav-collapse -->
       </div>
     </nav>
+    {% block bcrumb %}
+
+    {% endblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
                 {% for category, message in messages %}

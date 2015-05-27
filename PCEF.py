@@ -27,7 +27,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "Data",
+			monitoringKey = 1,
 			sponsorId = None,
 			precedence = 255)
 
@@ -36,7 +36,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "Data",
+			monitoringKey = 1,
 			sponsorId = None,
 			precedence = 50)
 
@@ -45,7 +45,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "Data",
+			monitoringKey = 1,
 			sponsorId = None,
 			precedence = 40)
 
@@ -54,7 +54,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("youtube","100","youtube.com","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "Youtube",
+			monitoringKey = 2,
 			sponsorId = None,
 			precedence = 30)
 
@@ -63,7 +63,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("sportvod","90","sport.cdn.starmobile.com","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "SportVod",
+			monitoringKey = 3,
 			sponsorId = None,
 			precedence = 20)
 
@@ -72,7 +72,7 @@ class PCEF:
 			flowInfo = FlowInfo([
 				SDFTemplate("default","255","*.*.*.*","all","*.*.*.*","all","all")
 			]),
-			monitoringKey = "Data",
+			monitoringKey = 1,
 			sponsorId = None,
 			precedence = 35)
 

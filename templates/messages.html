@@ -5,6 +5,13 @@
 <script src='/assets/script/coffee-script.js'></script>
 <script src='/assets/script/jumly.min.js'></script>
 {% endblock %}
+{% block bcrumb %}
+<ol class="breadcrumb">
+<li><a href="/pcef">PCEF</a></li>
+<li><a href="/pcef/{{pcef}}">{{pcef}}</a></li>
+<li class="active">Gx Messages</li>
+</ol>
+{% endblock %}
 {% block content %}
 
 	    <script type="text/jumly+sequence">

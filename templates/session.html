@@ -9,13 +9,22 @@
 	visibility: hidden;
 }
 </style>
-
 <script type="text/javascript" src="/assets/script/canvasjs.min.js"></script>
 <script type="text/javascript" src="/assets/script/pnotify.custom.min.js"></script>
 <link rel="stylesheet" href="/assets/styles/pnotify.custom.min.css">
 {% endblock %}
+
+{% block bcrumb %}
+<ol class="breadcrumb">
+<li><a href="/ue">UE</a></li>
+<li><a href="/ue/{{session.identity}}">{{session.identity}}</a></li>
+<li class="active">Session</li>
+</ol>
+{% endblock %}
+
 {% block content %}
 {% set keyHeader = "Monitoring Key" %}
+
 <div class="container" id="screen-session">
 	
 		{% for minfo in session.monitoringInfo.values() %}

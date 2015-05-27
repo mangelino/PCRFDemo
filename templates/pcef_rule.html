@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block title %}PCEF Rule{% endblock %}
+{% block bcrumb %}
+<ol class="breadcrumb">
+<li><a href="/pcef">PCEF</a></li>
+<li><a href="/pcef/{{pcef}}">{{pcef}}</a></li>
+<li class="active">Rules</li>
+</ol>
+{% endblock %}
+
 {% block content %}
 
 	       

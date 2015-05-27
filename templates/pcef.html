@@ -1,11 +1,20 @@
 {% extends "base.html" %}
 {% block title %}PCEF{% endblock %}
+
+{% block bcrumb %}
+<ol class="breadcrumb">
+<li><a href="/pcef">PCEF</a></li>
+<li class="active">{{pcef}}</li>
+</ol>
+{% endblock %}
+
 {% block content %}
 
-
-	<div class="page-header">       
-			<h3>Registered UEs</h3> 
+	<div class="page-header">
+	<h2>PCEF [{{pcef}}]</h2>
 	</div>
+	      
+	<h3>Registered UEs</h3> 
 	<div>
 		<table class="table">
 		<thead>
@@ -30,9 +39,9 @@
 		</tbody>
 		</table>
 	</div>   
-	<div class="page-header">        
-		<h3>Established sessions</h3> 
-	</div>
+	  
+	<h3>Established sessions</h3> 
+
 	<div class="row">
 		<div class="col-sm-6">
 			<table class="table">
@@ -52,7 +61,7 @@
 		</div >   
 	</div> 
 	<div class="page-header">        
-		<h3>Messages</h3> 
+		<h3>Gx Messages</h3> 
 	</div>
 	<div class="row">
 	<button class="btn btn-default"><a href="/pcef/{{pcef}}/messages">Show messages</a></button>
