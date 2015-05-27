@@ -193,7 +193,8 @@ def create_ue_session(identity = None):
 		notifyRules(res[2])
 		return flask.redirect("/ue/"+identity+"/session/"+res[1].sessionId)
 	else:
-		return render_template("diameter_error.html", error = diameterErrors[int(res[0])])
+		flashDiameterError(int(res[0]))
+		return flask.redirect("/ue/"+identity)
 
 @app.route("/ue/<identity>/sessions", methods=['GET'])
 def list_ue_session(identity = None):
@@ -244,7 +245,8 @@ def pcef(pcefid=None):
 def monitor_pcef_session(pcefid=None,sessionid=None):
 	sessions = pcefs[pcefid].sessions
 	if not sessionid in sessions:
-		abort(404)	
+		flask.flash("Session not found","warning")
+		return flask.redirect(request.referrer)	
 	return render_template("session.html", pcefid = pcefid, session = sessions[sessionid])
 
 @app.route("/pcef/<int:pcefid>/rules", methods=['GET'])
@@ -271,7 +273,9 @@ def pcef_list_sessions(pcefid=None):
 def pcef_delete_session(pcefid=None,sessionid = None):
 	print "Delete request for ", sessionid
 	if not sessionid in pcefs[pcefid].sessions:
-		abort(404)
+		flask.flash("Session not found on the PCEF","warning")
+		return flask.redirect("/pcef/"+str(pcefid))
+
 	session = pcefs[pcefid].sessions[sessionid]
 	identity = session.identity
 
@@ -279,19 +283,24 @@ def pcef_delete_session(pcefid=None,sessionid = None):
 	if result_code == PCC.DIAMETER_SUCCESS:
 		return flask.redirect("/ue/"+identity, code=303)
 	else:
-		return render_template("diameter_error.html", error = PCC.diameterErrors[result_code])
+		flashDiameterError(result_code)
+		return flask.redirect("/ue/"+identity, code=303)
+		
+def flashDiameterError(code):
+	flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description, "warning")
 
 
 @app.route("/pcef/<int:pcefid>/sessions/<sessionid>", methods = ["POST"])
 def pcef_report_session_usage(sessionid = None, pcefid=None):
 	if not sessionid in pcefs[pcefid].sessions:
 		print sessionid, pcefs[pcefid].sessions.keys()
-		abort(404)
+		flask.flash("Session not found on the PCEF", "warning")
+		return flask.redirect("/pcef/"+str(pcefid))
 	#print request.form
 	res = pcefs[pcefid].reportSessionUsage(sessionid, request)
 	if (res[0] != PCC.DIAMETER_SUCCESS):
 		code = res[0]
-		flask.flash("Diameter Error: "+ str(diameterErrors[code].id) + " " + diameterErrors[code].code + " " + diameterErrors[code].description, "warning")
+		flashDiameterError(code)
 	else:
 		notifyRules(res[1])
 		#return flask.redirect("/pcef/"+str(pcefid)+"/sessions/"+sessionid)

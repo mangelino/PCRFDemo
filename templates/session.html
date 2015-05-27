@@ -20,7 +20,7 @@
 	
 		{% for minfo in session.monitoringInfo.values() %}
 			<div class="panel panel-default">
-				<div class="panel-heading" onclick='toggleLiveTraffic("{{minfo.key}}");' style="cursor: hand;">
+				<div class="panel-heading" onclick='toggleLiveTraffic("{{minfo.key}}");' style="cursor: pointer;">
 					<h3 class="panel-title"><span class="glyphicon glyphicon-stats" id="expandicon" aria-hidden="true" style="padding-right: 10px;" ></span>{{keyHeader + ": " + minfo.key}}</h3>
 				</div>
 				<div class="panel-body hidden" id="livetraffic_{{minfo.key}}">

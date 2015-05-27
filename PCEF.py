@@ -186,7 +186,7 @@ class PCEF:
 		atHome = int(request.form["isAtHome"])
 		#print "Session",session, "AtHome:", atHome
 		if atHome != session.atHomeLocation:
-			self.sessions[sessionid] = session._replace(atHomeLocation = atHome)
+			self.sessions[sessionid].atHomeLocation = atHome
 			session = self.sessions[sessionid]
 
 		#Create the base query 
