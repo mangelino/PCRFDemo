@@ -1,65 +1,18 @@
 {% extends "base.html" %}
 {% block title %}PCC Demo Introduction{% endblock %}
+{% block head %}
+{{super()}}
+<script type="text/javascript">
+function hover(element) {
+    element.setAttribute('src', 'assets/images/reference_architecture_annotated.png');
+}
+function unhover(element) {
+    element.setAttribute('src', 'assets/images/reference_architecture.png');
+}
+</script>
+
+{% endblock %}
 {% block content %}
+<img style="width: 800px;"  src="/assets/images/reference_architecture.png" onmouseover="hover(this);" onmouseout="unhover(this);">
 
-	<div class="page-header">
-	<h2>Introduction</h2>
-	</div>
-	<p>The PCC Demo is built around several Use Cases that show the capabilities of the Digital Route PCRF solution.</p>
-	<p>The user interface is organized in several screens, each displaying one of the entities or entity category involved in the demo.</p>
-	<h4>UE</h4>
-	<p>The <a href="/ue">UE</a> menu gives access to all the simulated user terminals. Each terminal is by default linked to a certain use case, but any terminal can be used for any case. The terminal <a href="/ue/462005">462005</a> is simulated as being registered on a different gateway (PCEF) which will be used to show the last two use cases.</p>
-	<p>From the UE page it is possible to directly create a new session (that is, simulating that the terminal is attached to the network using an IP-CAN), or to access the UE detials. In the UE details window it is possible to see all active sessions as registered by the PCEF, and the status of the buckets associated to the UE, fetched from the PCRF/Service Control</p>
-	<h4>PCEF</h4>
-	<p>The demo consists of 2 PCEFs. By clicking on a PCEF a detail screen showing the PCEF's status is shown, that is the list of active sessions, and the set of Static Rules that are configured on the PCEF and that can be activated/deactivated by the PCRF.</p>
-	<h4>BDH/PCRF</h4>
-	The BDH (Bucket Data Holder) menu is a view into the status of the PCRF. The same information cane be obtained by accessing the <a href="{{mzIP}}:9000/mz">Service Control UI</a>. All buckets currently active are listed, together with the associated products and counters. Removing a bucket data holder will remove all subscriptions for the given user. 
-	<div class="page-header">
-	<h2>Use Cases</h2>
-	</div>
-	<h3>1. Data allowance</h2>
-	<p>In this use case we want to show the basic functionality of the PCRF. The default user for this UC is <a href="/ue/460001">460001</a>.</p> 
-	<p>The user buys the default packet, wich allows 500kB of data during a 1 month period. Bucket is reset at every beginning of month. When the 500kB of data have been reached, the PCRF will activate the <a href="/pcef/1/rule/Throttle">Throttle</a> rule, which reduces the maximum bandwith.</p>
-	<h3>2. Coupon</h2>
-	<p>In this use case we want to show a user having reached its monthly data plan quota, wanting to temporarily enable full bandwidth for a limited period of time. The default user for this UC is <a href="/ue/460001">460001</a>.</p> 
-	<p>The user, which has reached its monthly data plan quota, buys the Turbo Coupon, wich allows unlimited data at full speed for a limited period of time (1 minute in the demo context). This is a 1 time bucket. After having purchased the coupon the PCRF immediately enables a new <a href="/rules/Turbo">Turbo</a> rule for the user and creates a new bucket to count the usage during the coupon validity period. When the coupon time expires, the <a href="/pcef/1/rule/Turbo">Turbo</a> rule is removed and the <a href="/pcef/1/rules/Throttle">Throttle</a> rule is enforced anew.</p>
-	<h3>3. Family plan</h2>
-	<p>In this use case we want to show the use of a family plan implemented via a bucket group. Two members of a family purchase a faimly plan which implements policing at both user level and group (family) level. The default users for this UC are <a href="/ue/460002">460002</a> and <a href="/ue/460003">460003</a>.</p> 
-	<p>Upon purchasing the family package for both users, each one is configured with a 500KB data allowance and a shared 1MB allowance. Data consumption from each user eats the user allowance and the family allowance. In this use case, when the user allowance is being reached, a <a href="/pcef/1/rule/Throttle">Throttle</a> rule is activated for the user. The other user is not affected. When the total data consumption of both users reaches the family allowance, a new <a href="/pcef/1/rule/Throttle_Group">Throttle Group</a> rule is activated for all family plan members.</p>
-	<h3>4. Service differentiation</h3>
-	<p>In this use case we show how the PCRF implements service differention by using different monitoring keys linked to different products. The default user for this UC is <a href="/ue/460004">460004</a>.</p>
-	<p>The user purchases a normal plan, where Data and Youtube traffic are monitored separately. The PCEF, with possibly the help of a <a href="http://en.wikipedia.org/wiki/Deep_packet_inspection">DPI</a> solution, reports the data usage separately for 2 monitoring keys, DATA and YOUTUBE. All DATA usage is counted against the 500KB data allowance, while the YOUTUBE data is unlimited.</p>
-	<h3>5. Sport Event offer</h3>
-	<p>In this use case we show how easy one can implement new offers via the Service Control UI. The default user for this UC is <a href="/ue/460001">460001</a>.</p>
-	<p>The operator wants to launch a new time limited offer in the occasion of some sport event. The operator creates a new <a href="{{mzIP}}:9000/mz/#/service-control/capacities">Capacity</a>, <a href="{{mzIP}}:9000/mz/#/service-control/periods">Periods</a>, <a href="{{mzIP}}:9000/mz/#/service-control/products">Products</a>.</p>
-	<p>Product: Sport VOD </p>
-	<p>Duration: 1 month</p>
-	<p>Capacity: unlimited</p>
-	<p>Media/Rating key: only traffic to sport channel, streaming - other data goes to whichever other subscription the user has</p>
-	<p>Priority: 50</p>
-	<p>Stop fallthrough: true</p>
-	<p>Creating a session for a user, one can see the new product being provisioned.</p>
-
-	<h3>New PCEF with additional AVPs</h3>
-	<p>In this use case we show how simple is to modify the PCRF to consider new AVPs. </p>
-	<p>A new PCEF is installed in the network, and provided an additional fictious AVP in the Diameter request, Home-Location-Flag (code=800, vendor code=9008). This additional AVP indicates if the subscriber equipment is located is his home zone. 
-	We show that initially this AVP is not recognized by the PCRF, and by simply changing the Diameter stack configuration of the PCRF we can make it aware of it and able to decode it.</p>
-	<p>Enable debug view of the events on the Gx stack on the Policy_Template workflow, report some usage and see that in the debug window a message is printed as the AVP in not recognized</p>
-	<p>Demonstrate that adding the new AVP is simple</p>
-	<ul>
-	<li>Add the new AVP to the Diameter configuration</li>
-	<li>Add the AVP to the CCR message definition</li>
-	<li>Modify the PCRF_APL_Helpers_Gx_Diameter APL code to populate the internal CCR structure with the value of the new AVP</li>
-	</ul>
-
-	<p>In the next use case we will demonstrate how to modify the PCRF/Service control logic in order to enable the creation of a new product</p>
-
-	<h3>Unlimited at Home product</h3>
-	<p>The new AVP provided by the new PCEF installed in the network allow us to create a new product called Unlimited at Home: by buying this product, the subscriber can have unlimited data traffic while staying in his home location. </p>
-	<p>The use case shows how simple it is to enable such feature, resulting in a really short TTM.</p>
-	<p>In the demo directory there are 2 versions of 2 files, PCRF_APL_Helpers_Gx_Diameter and PCRF_APL_Helpers_Usage. A version is called _original, the other version is called _modified.</p>
-	<p>You can use a "diff" program to show the differences between the two files and then copy-paste the content of the modified files in the corresponding APL Code element. Save the modified version and add a comment, such as "Unlimited at home modifications"</p>
-	<p>Restart the Policy_Template workflow and then, from the simulator, buy a subscription for the Unlimited at Home package. Create a new session of the user <a href="/ue/462005">462005</a> or reuse an existing session if it exists. You can notice that a new bucket has been added, called HOME. Refresh the session by clicking "Report usage" oncr without any usage, and then start reporting usage: it will be reported in the HOME bucket. </p>
-	<p>It is also possible to simulate a change of location for the user by selecting the "tree" simbol in the Location row. Refresh the session by Reporting empty usage, and then start reporting usage: it will be accounted in the DATA_500KB bucket.</p>
-	<p><strong>Note:</strong> refreshing is done in order to show that the reported usage is immediately accounted for by the "correct" bucket. The PCRF is configured to account the usage on the bucket for which the usage was granted, and if the refresh is not performed, the first usage reported after a change of configuration would be reported on the "old" bucket. In reality the PCEF is receiving a RAR message at each configuration change, and that could be used by the PCEF to terminate the current sessions, and reopen new ones.</p>
 {% endblock %}
