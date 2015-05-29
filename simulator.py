@@ -26,7 +26,7 @@ all_users = {}
 # Dictionary for the PCEF
 pcefs = {}
 
-CC_MSG_TYPES = {0: "Authorize Only", 1: "Initial", 2: "Update", 3: "Terminate"}
+CC_MSG_TYPES = {'': "Error", 0: "Authorize Only", 1: "Initial", 2: "Update", 3: "Terminate"}
 allowed_actions = ["Start", "Stop", "Update", "Refresh", "Reset"]
 
 
