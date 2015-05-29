@@ -173,7 +173,7 @@ class PCEF:
                     
                     self.users[identity].sessions.pop(self.users[identity].sessions.index(session))
                     self.sessions.pop(sessionid)
-                    prettyPrintJson(CCA, ccr_ans)
+                    prettyPrintJson("CCA", ccr_ans)
                     
                     checkUsageMonitoringInfo(ccr_ans, session)
                     #checkChargingRuleName(ccr_ans, session)
