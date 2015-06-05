@@ -130,7 +130,7 @@
 				<td>
 					<h4 id="rules">
 					{% for chargingRule in session.installedRules %}
-					<a href="/pcef/rule/{{chargingRule}}">
+					<a href="/pcef/{{pcef.id}}/rule/{{chargingRule}}">
 					<span class="label label-primary">{{chargingRule}}</span></a>
 					{% endfor %}
 					</h4>
